@@ -1,20 +1,80 @@
 // 標準ライブラリは使用しない
 #![no_std]
-use core::arch::asm;
+
+
+use core::arch::{asm, global_asm};
+use core::fmt;
+mod io;
+mod kernel;
+use kernel::kernel_entry;
 
 extern "C" {
     static mut __stack_top: *mut u8;
+}
+
+struct Writer {
+
+}
+
+impl fmt::Write for Writer {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        self.write_byte(s);
+        Ok(())
+    }
+}
+
+impl Writer {
+    pub fn write_byte(&mut self, str: &str) {
+        for c in str.chars() {
+            putchar(c)
+        }
+    }
+}
+
+fn print(str: &str) {
+    for c in str.chars() {
+        putchar(c)
+    }
+}
+
+fn print_num(num: u8) {
+    putchar(num as char);
+}
+
+// Debug, deriveトレートはcoreにあるから、特になんともなくとも使える
+#[derive(Debug)]
+struct hoge {
+    a: u8,
+    b: u8,
 }
 
 #[no_mangle]
 pub extern "C" fn kernel_main() -> ! {
     // let s: *const [u8; 15] = b"\n\nHello World!\n";
     // for ch in s {
-    putchar('\n');
-    putchar('\n');
-    putchar('H');
-    putchar('e');
-    putchar('l');
+    print("hello world!");
+    // print(write!());
+    // unsafe {
+    //     print_num(*__stack_top);
+    // }
+
+    // let writer = Writer {};
+    print!("hoge");
+    println!("hoge: {}", 0);
+    unsafe {
+        let hoge = hoge {
+            a: 0, b: 0,
+        };
+        println!("hoge: {:?}", hoge);
+    }
+
+    unsafe {
+        asm!(
+            "csrs stvec, %kernel_entry",
+        );
+    }
+
+    // write!(writer, "The numbers are {} and {}", 42, 1.0/3.0).unwrap();
     // unsafe {
     //     putchar(__stack_top as char);
     // }
@@ -31,11 +91,14 @@ pub extern "C" fn kernel_main() -> ! {
     loop {}
 }
 
+// #[cfg(target_arch = "riscv32")]
+// global_asm!(
+//     "csrw stvec, 0x80220000",
+// );
+
 #[link_section = ".text.boot"]
 #[no_mangle]
 pub extern "C" fn boot() {
-
-
     unsafe {
         // __stack_top = 0x80200000 as *mut u8;
         asm!(
@@ -74,13 +137,17 @@ pub fn sbi_call(mut arg0: i32, mut arg1: i32, arg2: i32, arg3: i32, arg4: i32, a
     }
 }
 
-#[no_mangle]
-fn putchar(ch: char) {
-    sbi_call(ch as i32, 0, 0, 0, 0, 0, 0, 1 /* Console Putchar */);
-}
+// #[no_mangle]
+// fn putchar(ch: char) {
+//     sbi_call(ch as i32, 0, 0, 0, 0, 0, 0, 1 /* Console Putchar */);
+// }
 
 // panic発生時のハンドラ
 use core::panic::PanicInfo;
+use core::ptr::write_bytes;
+
+use io::putchar;
+
 #[panic_handler]
 #[no_mangle]
 pub fn panic(_info: &PanicInfo) -> ! {

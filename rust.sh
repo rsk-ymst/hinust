@@ -2,7 +2,8 @@
 set -xue
 
 QEMU=qemu-system-riscv32
-TARGET_LIB=/home/ymst/riscv-os/os_dev/target/riscv32imac-unknown-none-elf/debug/libos_dev.a
+TARGET_LIB=/home/ymst/work/riscv-os/hinust/target/riscv32imac-unknown-none-elf/debug/libos_dev.a
+
 
 DEBUG_DIR=./dev
 ELF_DIR=./elf
@@ -11,12 +12,12 @@ ELF_DIR=./elf
 GCC=riscv32-unknown-linux-gnu-gcc
 
 
-cargo build --target riscv32imac-unknown-none-elf
+cargo build 
 
 # カーネルをビルド
 $GCC -T kernel.ld $TARGET_LIB -Wl,-Map=$DEBUG_DIR/kernel.map -o $ELF_DIR/kernel.elf -nostdlib
 
-riscv32-unknown-linux-gnu-objdump -D kernel.elf > $DEBUG_DIR/kernel.disasm
+riscv32-unknown-linux-gnu-objdump -D $ELF_DIR/kernel.elf > $DEBUG_DIR/kernel.disasm
 
 # # QEMUを起動
 $QEMU -machine virt -bios default -nographic -serial mon:stdio --no-reboot \

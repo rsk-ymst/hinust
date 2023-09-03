@@ -2,7 +2,7 @@
 set -xue
 
 QEMU=qemu-system-riscv32
-TARGET_LIB=/home/ymst/work/riscv-os/hinust/target/riscv32imac-unknown-none-elf/debug/libos_dev.a
+TARGET_LIB=./target/riscv32imac-unknown-none-elf/debug/libos_dev.a
 
 
 DEBUG_DIR=./dev
@@ -12,7 +12,7 @@ ELF_DIR=./elf
 GCC=riscv32-unknown-linux-gnu-gcc
 
 
-cargo build 
+cargo build
 
 # カーネルをビルド
 $GCC -T kernel.ld $TARGET_LIB -Wl,-Map=$DEBUG_DIR/kernel.map -o $ELF_DIR/kernel.elf -nostdlib

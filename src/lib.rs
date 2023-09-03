@@ -3,10 +3,15 @@
 
 
 use core::arch::{asm, global_asm};
+use core::cell::Cell;
 use core::fmt;
 mod io;
 mod kernel;
 mod macros;
+mod mem;
+mod proc;
+
+const PAGE_SIZE: usize = 4096;
 
 use kernel::kernel_entry;
 
@@ -15,36 +20,7 @@ extern "C" {
     // static mut kernel_entry: *mut u8;
 }
 
-struct Writer {
 
-}
-
-impl fmt::Write for Writer {
-    fn write_str(&mut self, s: &str) -> fmt::Result {
-        self.write_byte(s);
-        Ok(())
-    }
-}
-
-impl Writer {
-    pub fn write_byte(&mut self, str: &str) {
-        for c in str.chars() {
-            putchar(c)
-        }
-    }
-}
-
-fn print(str: &str) {
-    for c in str.chars() {
-        putchar(c)
-    }
-}
-
-fn print_num(num: u8) {
-    putchar(num as char);
-}
-
-// Debug, deriveトレートはcoreにあるから、特になんともなくとも使える
 #[derive(Debug)]
 struct hoge {
     a: u8,
@@ -53,15 +29,6 @@ struct hoge {
 
 #[no_mangle]
 pub extern "C" fn kernel_main() -> ! {
-    // let s: *const [u8; 15] = b"\n\nHello World!\n";
-    // for ch in s {
-    print("hello world!");
-    // print(write!());
-    // unsafe {
-    //     print_num(*__stack_top);
-    // }
-
-    // let writer = Writer {};
     print!("hoge");
     println!("hoge: {}", 0);
     unsafe {
@@ -71,8 +38,44 @@ pub extern "C" fn kernel_main() -> ! {
         println!("hoge: {:?}", hoge);
     }
 
+    unsafe {
+        println!("pre: {}", __stack_top as i32);
+    }
+
+    let addr = fetch_address!("__free_ram");
+    let addr2 = fetch_address!("__free_ram_end");
+
+    println!("{:x}", addr);
+    println!("{:x}", addr2);
+
     write_csr!("stvec", kernel_entry);
-    
+
+    unsafe {
+        let mem_manager = PageManager {
+            ram: RAM {
+                entry_point: fetch_address!("__free_ram"),
+                end_point: fetch_address!("__free_ram_end")
+            },
+            next_addr: Cell::new(fetch_address!("__free_ram")),
+        };
+
+        let paddr0: paddr_t = mem_manager.alloc_pages(2);
+        let paddr1: paddr_t = mem_manager.alloc_pages(1);
+
+        println!("alloc_pages test: paddr0={:x}", paddr0);
+        println!("{:x}", *mem_manager.next_addr.as_ptr());
+
+        println!("alloc_pages test: paddr1={:x}", paddr1);
+        println!("{:x}", *mem_manager.next_addr.as_ptr());
+        // println!("alloc_pages test: paddr1={:?}", paddr1);
+    }
+
+    // unsafe {
+    //     asm!(
+    //         "unimp",
+    //     );
+    // }
+
 
     // write!(writer, "The numbers are {} and {}", 42, 1.0/3.0).unwrap();
     // unsafe {
@@ -90,11 +93,6 @@ pub extern "C" fn kernel_main() -> ! {
 
     loop {}
 }
-
-// #[cfg(target_arch = "riscv32")]
-// global_asm!(
-//     "csrw stvec, 0x80220000",
-// );
 
 #[link_section = ".text.boot"]
 #[no_mangle]
@@ -147,6 +145,8 @@ use core::panic::PanicInfo;
 use core::ptr::write_bytes;
 
 use io::putchar;
+
+use crate::mem::{paddr_t, PageManager, RAM};
 
 #[panic_handler]
 #[no_mangle]

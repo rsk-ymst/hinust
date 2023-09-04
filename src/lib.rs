@@ -6,10 +6,13 @@ use core::arch::{asm, global_asm};
 use core::fmt;
 mod io;
 mod kernel;
+mod macros;
+
 use kernel::kernel_entry;
 
 extern "C" {
     static mut __stack_top: *mut u8;
+    // static mut kernel_entry: *mut u8;
 }
 
 struct Writer {
@@ -68,11 +71,8 @@ pub extern "C" fn kernel_main() -> ! {
         println!("hoge: {:?}", hoge);
     }
 
-    unsafe {
-        asm!(
-            "csrs stvec, %kernel_entry",
-        );
-    }
+    write_csr!("stvec", kernel_entry);
+    
 
     // write!(writer, "The numbers are {} and {}", 42, 1.0/3.0).unwrap();
     // unsafe {

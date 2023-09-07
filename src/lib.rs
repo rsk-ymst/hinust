@@ -58,17 +58,25 @@ pub extern "C" fn kernel_main() -> ! {
             },
             next_addr: Cell::new(fetch_address!("__free_ram")),
         };
+        let mut proc_manager = ProcessManager::init();
+        let p = Process::init();
 
-        let paddr0: paddr_t = mem_manager.alloc_pages(2);
-        let paddr1: paddr_t = mem_manager.alloc_pages(1);
+        proc_manager.proc_a = proc_manager.create_process(fetch_address!("hello"));
+        proc_manager.proc_b = proc_manager.create_process(fetch_address!("hello"));
 
-        println!("alloc_pages test: paddr0={:x}", paddr0);
-        println!("{:x}", *mem_manager.next_addr.as_ptr());
+        // let paddr0: paddr_t = mem_manager.alloc_pages(2);
+        // let paddr1: paddr_t = mem_manager.alloc_pages(1);
+        proc_manager.proc_a_entry();
 
-        println!("alloc_pages test: paddr1={:x}", paddr1);
-        println!("{:x}", *mem_manager.next_addr.as_ptr());
+        // println!("alloc_pages test: paddr0={:x}", paddr0);
+        println!("{:?}", *proc_manager.proc_a);
+
+        // println!("alloc_pages test: paddr1={:x}", paddr1);
+        // println!("{:x}", *mem_manager.next_addr.as_ptr());
         // println!("alloc_pages test: paddr1={:?}", paddr1);
+
     }
+
 
     // unsafe {
     //     asm!(
@@ -93,6 +101,20 @@ pub extern "C" fn kernel_main() -> ! {
 
     loop {}
 }
+
+#[no_mangle]
+pub extern "C" fn hello() {
+    loop {
+        println!("A");
+
+        for i in 0..30000000 {
+            unsafe {
+                asm!("nop");
+            }
+        }
+    }
+}
+
 
 #[link_section = ".text.boot"]
 #[no_mangle]
@@ -147,11 +169,13 @@ use core::ptr::write_bytes;
 use io::putchar;
 
 use crate::mem::{paddr_t, PageManager, RAM};
+use crate::proc::{ProcessManager, Process};
 
 #[panic_handler]
 #[no_mangle]
-pub fn panic(_info: &PanicInfo) -> ! {
+pub fn panic(info: &PanicInfo) -> ! {
     // 何もせず、無限ループする
+    println!("{}", info);
     loop{}
 }
 

@@ -1,5 +1,6 @@
 #!/bin/bash
 set -xue
+PATH=$PATH:/opt/riscv/bin
 
 QEMU=qemu-system-riscv32
 TARGET_LIB=./target/riscv32imac-unknown-none-elf/debug/libos_dev.a

@@ -129,3 +129,4 @@ pub extern "C" fn handle_trap(trap_frame: *const trap_frame) {
 
     println!("unexpected trap scause={:x}, stval={:x}, sepc={:x}", scause, stval, user_pc);
 }
+

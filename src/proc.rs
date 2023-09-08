@@ -15,6 +15,9 @@ pub struct ProcessManager {
     pub proc_b: *mut Process,
 }
 
+unsafe impl Send for Process {}
+unsafe impl Sync for Process {}
+
 impl ProcessManager {
     pub fn init() -> Self {
 
@@ -82,23 +85,23 @@ pub enum State {
 
 #[derive(Copy, Clone, Debug)]
 pub struct Process {
-    pid: i32,      // プロセスID
-    state: State,          // プロセスの状態
-    sp: vaddr_t,   // コンテキストスイッチ時のスタックポインタ
-    stack: *mut [u8; 8192]
+    pub pid: i32,      // プロセスID
+    pub state: State,          // プロセスの状態
+    pub sp: vaddr_t,   // コンテキストスイッチ時のスタックポインタ
+    pub stack: [u8; 8192]
 }
 
-impl Process {
-    pub fn init() -> Self {
-        println!("yes!");
-        Self {
-            pid: -1,                 // プロセスID
-            state: State::PROC_UNUSED, // プロセスの状態
-            sp: -1,                  // コンテキストスイッチ時のスタックポインタ
-            stack: [0; 8192].borrow_mut()
-        }
-    }
-}
+// impl Process {
+//     pub fn init() -> Self {
+//         println!("yes!");
+//         Self {
+//             pid: -1,                 // プロセスID
+//             state: State::PROC_UNUSED, // プロセスの状態
+//             sp: -1,                  // コンテキストスイッチ時のスタックポインタ
+//             stack: [0; 8192].borrow_mut()
+//         }
+//     }
+// }
 
 #[no_mangle]
 pub extern "C" fn switch_context(prev_sp: *const i32, next_sp: *const i32) {
@@ -140,3 +143,4 @@ pub extern "C" fn switch_context(prev_sp: *const i32, next_sp: *const i32) {
         );
     }
 }
+

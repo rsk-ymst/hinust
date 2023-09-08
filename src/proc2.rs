@@ -1,23 +1,34 @@
-use core::arch::asm;
+use core::{arch::asm, cell::Cell};
+
+use alloc::boxed::Box;
 
 // use crate::proc::{Process, State};
 
 #[derive(Copy, Clone, PartialEq, Debug)]
-pub enum State {
-    PROC_RUNNABLE,
-    PROC_UNUSED,
-    PROC_STABLE,
+pub enum ProcState {
+    RUNNABLE,
+    UNUSED,
+    STABLE,
 }
+
 type vaddr_t = i32;
 
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Debug)]
+#[repr(C, align(32))]
 pub struct Process {
-    pub pid: i32,      // プロセスID
-    pub state: State,          // プロセスの状態
-    pub sp: *mut i32,   // コンテキストスイッチ時のスタックポインタ
-    pub stack: [u8; 8192]
+    pub pid: Cell<i32>,      // プロセスID
+    pub state: Cell<ProcState>,          // プロセスの状態
+    pub sp: Cell<*mut i32>,   // コンテキストスイッチ時のスタックポインタ
+    pub stack: Cell<[u8; 8192]>
 }
+
+// pub struct Task {
+//     pub pid: i32,      // プロセスID
+//     pub state: Cell<ProcState>,          // プロセスの状態
+//     pub sp: i32,   // コンテキストスイッチ時のスタックポインタ
+//     pub stack: Box<[u8; 8192]>
+// }
 
 unsafe impl Send for Process {}
 unsafe impl Sync for Process {}

@@ -1,146 +1,128 @@
+use core::cell::{Cell, RefCell};
 use core::{arch::asm, borrow::BorrowMut};
 
+
+use crate::proc2::ProcState;
 use crate::{io::putchar, println};
+use crate::{Process, switch_context};
 
 
 type vaddr_t = i32;
 
-const PROC_MAX: usize = 8;
+const PROC_MAX: usize = 3;
 
 
 #[derive(Debug)]
+#[repr(C, align(32))]
 pub struct ProcessManager {
     pub procs: [Process; PROC_MAX],
-    pub proc_a: *mut Process,
-    pub proc_b: *mut Process,
+    pub current_proc_idx: usize,
+    pub idle_proc_idx: usize,
 }
 
-unsafe impl Send for Process {}
-unsafe impl Sync for Process {}
+pub static mut PROC_MANAGER: ProcessManager = ProcessManager {
+    procs: [
+        Process {
+            pid: Cell::new(-1),
+            state: Cell::new(ProcState::UNUSED),
+            sp: Cell::new(0 as *mut i32),
+            stack: Cell::new([0; 8192]),
+            },
+        Process {
+            pid: Cell::new(-1),
+            state: Cell::new(ProcState::UNUSED),
+            sp: Cell::new(0 as *mut i32),
+            stack: Cell::new([0; 8192]),
+            },
+        Process {
+            pid: Cell::new(-1),
+            state: Cell::new(ProcState::UNUSED),
+            sp: Cell::new(0 as *mut i32),
+            stack: Cell::new([0; 8192]),
+            },
+        ],
+    current_proc_idx: 0,
+    idle_proc_idx: 0
+    // proc_a: todo!(),
+    // proc_b: todo!(),
+};
 
 impl ProcessManager {
-    pub fn init() -> Self {
-
-        Self {
-            procs: [Process::init(); PROC_MAX],
-            proc_a: Process::init().borrow_mut(),
-            proc_b: Process::init().borrow_mut(),
-        }
-    }
-
-    pub unsafe fn create_process(&mut self, pc: i32) -> *mut Process {
-        let mut proc = Process::init();
-
+    #[no_mangle]
+    pub unsafe fn create_process(&mut self, pc: i32) {
         for (i, proc) in self.procs.iter_mut().enumerate() {
-            if proc.state == State::PROC_UNUSED {
-                let sp: *mut i32 = proc.stack as *mut i32;
+            if proc.state.get() == ProcState::UNUSED {
+                /* 全て0で初期化されているので、0でwriteする必要がない */
+                let sp = (*(proc.stack.get_mut())).as_mut_ptr().add(proc.stack.get().len()).cast::<i32>();
+                let top_sp = sp.offset(-12);
 
-                for i in 0..13 {
-                    *sp.offset(-i) = 0;
-                    if i == 12 {
-                        *sp.offset(-i) = pc;
-                    }
-                }
+                top_sp.write(pc);
 
-                proc.pid = (i + 1) as i32;
-                proc.state = State::PROC_RUNNABLE;
-                proc.sp = unsafe { *sp };
+                *proc.pid.get_mut() = (i + 1) as i32;
+                *proc.state.get_mut() = ProcState::RUNNABLE;
+                *proc.sp.get_mut() = top_sp;
 
-                return proc;
+                // proc.replace(
+                // Process {
+                //         pid: (i + 1) as i32,
+                //         state: ProcState::RUNNABLE,
+                //         sp: top_sp,
+                //         stack: proc.read().stack,
+                //     }
+                // );
+
+                return;
             }
         }
 
         panic!("failed create");
     }
 
-    pub unsafe fn proc_a_entry(&self) {
-        for _ in 0..30000000 {
-            println!("A");
-            switch_context(self.proc_a.read().sp as *const i32, self.proc_b.read().sp as *const i32);
-            unsafe {
-                asm!("nop");
+    #[no_mangle]
+    pub unsafe extern "C" fn yield_(&mut self) {
+        // println!("yield!: cur: {:?}", self.current_proc_idx.as_ptr().read().pid);
+        let mut next = self.idle_proc_idx;
+        // println!("yield!: cur:");
+
+        for i in 0..PROC_MAX {
+            // println!("yield!: proc: {} ", self.current_proc_idx.as_ptr().read().pid);
+            // let pid = self.current_proc_idx.as_ptr().read().pid;
+            // println!("idx: {}", (pid + i));
+            // let index = (pid + i);
+
+            // println!("yield!: proc: {} ", (self.current_proc_idx.as_ptr().read().pid as usize + i) % PROC_MAX);
+            let proc = &self.procs[i];
+            println!("yield!: {} pid: {:?}", i, proc.pid.get());
+
+            // let x = self.current_proc_idx; // これが怪しそう
+            if i == self.current_proc_idx {
+                println!("----------- yield!: cur_idx: {} ", self.current_proc_idx);
+
+                continue;
             }
-        }
-    }
-
-    pub unsafe extern "C"  fn proc_b_entry(&self) {
-        for _ in 0..30000000 {
-            println!("B");
-            switch_context(self.proc_a.read().sp as *const i32, self.proc_b.read().sp as *const i32);
-            unsafe {
-                asm!("nop");
+            println!("yield!: state: {:?}", proc.state);
+            if proc.state.get() == ProcState::RUNNABLE && proc.pid.get() > 0 {
+                // println!("yield!: hgoe: {:?}", proc.pid);
+                next = i;
+                break;
             }
+            // i += 1;
+            // println!("yield!: i: {:?}", i);
         }
-    }
 
+        // println!("yield!: cur: {:?}", self.current_proc_idx.as_ptr().read().pid);
+        // println!("yield!: next2: {:?}", next.read().pid);
+        if next == self.current_proc_idx {
+            println!("ret");
+            return;
+        }
 
-}
+        let prev = self.current_proc_idx;
+        self.current_proc_idx = next;
 
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub enum State {
-    PROC_RUNNABLE,
-    PROC_UNUSED,
-    PROC_STABLE,
-}
+        // self.procs[self.current_proc_idx].state = ProcState::RUNNABLE;
+        println!("yield!: next: {:?}", next);
 
-#[derive(Copy, Clone, Debug)]
-pub struct Process {
-    pub pid: i32,      // プロセスID
-    pub state: State,          // プロセスの状態
-    pub sp: vaddr_t,   // コンテキストスイッチ時のスタックポインタ
-    pub stack: [u8; 8192]
-}
-
-// impl Process {
-//     pub fn init() -> Self {
-//         println!("yes!");
-//         Self {
-//             pid: -1,                 // プロセスID
-//             state: State::PROC_UNUSED, // プロセスの状態
-//             sp: -1,                  // コンテキストスイッチ時のスタックポインタ
-//             stack: [0; 8192].borrow_mut()
-//         }
-//     }
-// }
-
-#[no_mangle]
-pub extern "C" fn switch_context(prev_sp: *const i32, next_sp: *const i32) {
-     unsafe {
-        asm!(
-            "addi sp, sp, -13 * 4",
-            "sw ra,  0  * 4(sp)",
-            "sw s0,  1  * 4(sp)",
-            "sw s1,  2  * 4(sp)",
-            "sw s2,  3  * 4(sp)",
-            "sw s3,  4  * 4(sp)",
-            "sw s4,  5  * 4(sp)",
-            "sw s5,  6  * 4(sp)",
-            "sw s6,  7  * 4(sp)",
-            "sw s7,  8  * 4(sp)",
-            "sw s8,  9  * 4(sp)",
-            "sw s9,  10 * 4(sp)",
-            "sw s10, 11 * 4(sp)",
-            "sw s11, 12 * 4(sp)",
-            "sw sp, (a0)",
-            "lw sp, (a1)",
-            "lw ra,  0  * 4(sp)",
-            "lw s0,  1  * 4(sp)",
-            "lw s1,  2  * 4(sp)",
-            "lw s2,  3  * 4(sp)",
-            "lw s3,  4  * 4(sp)",
-            "lw s4,  5  * 4(sp)",
-            "lw s5,  6  * 4(sp)",
-            "lw s6,  7  * 4(sp)",
-            "lw s7,  8  * 4(sp)",
-            "lw s8,  9  * 4(sp)",
-            "lw s9,  10 * 4(sp)",
-            "lw s10, 11 * 4(sp)",
-            "lw s11, 12 * 4(sp)",
-            "addi sp, sp, 13 * 4",
-            "ret",
-            in("a0") prev_sp,
-            in("a1") next_sp,
-        );
+        switch_context(&self.procs[prev].sp.get(), &self.procs[self.current_proc_idx].sp.get());
     }
 }
-

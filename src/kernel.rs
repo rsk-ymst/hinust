@@ -13,7 +13,7 @@ pub extern "C" fn kernel_entry() {
      unsafe {
         // __stack_top = 0x80200000 as *mut u8;
         asm!(
-            "csrw sscratch, sp",
+            "csrrw sp, sscratch, sp",
             "addi sp, sp, -4 * 31",
             "sw ra,  4 * 0(sp)",
             "sw gp,  4 * 1(sp)",
@@ -48,6 +48,9 @@ pub extern "C" fn kernel_entry() {
 
             "csrr a0, sscratch",
             "sw a0, 4 * 30(sp)",
+
+            "addi a0, sp, 4 * 31",
+            "csrw sscratch, a0",
 
             "mv a0, sp",
             "call handle_trap",
@@ -129,4 +132,3 @@ pub extern "C" fn handle_trap(trap_frame: *const trap_frame) {
 
     println!("unexpected trap scause={:x}, stval={:x}, sepc={:x}", scause, stval, user_pc);
 }
-

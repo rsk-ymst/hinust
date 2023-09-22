@@ -88,8 +88,19 @@ impl ProcessManager {
             return;
         }
 
+        // println!("point: {:?}", &self.procs[next].stack[8191] as *const u8);
+        asm!(
+            "csrw sscratch, {0}", // sscratchは重要な情報の退避用レジスタ
+            in(reg) self.procs[next].stack[8191] as *const u8
+        );
+
+        // &self.procs[self.current_proc_idx].stack[8192]
+
         let prev = self.current_proc_idx;
         self.current_proc_idx = next;
+
+        // println!("point: {:?}", &self.procs[prev].sp);
+        // println!("point２: {:?}", self.procs[prev].sp);
 
         switch_context(&self.procs[prev].sp, &self.procs[self.current_proc_idx].sp);
     }

@@ -70,7 +70,7 @@ extern "C" {
     // static mut kernel_entry: *mut u8;
 
     // #[allow(improper_ctypes)]
-    fn switch_context(prev_sp: &*mut i32, next_sp: &*mut i32);
+    fn switch_context(prev_sp: &usize, next_sp: &usize);
 }
 
 
@@ -103,7 +103,7 @@ pub extern "C" fn kernel_main() -> ! {
     // println!("{:x}", addr);
     // println!("{:x}", addr2);
 
-    // write_csr!("stvec", kernel_entry);
+    write_csr!("stvec", kernel_entry);
     // kernel_entry();
 
     unsafe {
@@ -122,7 +122,7 @@ pub extern "C" fn kernel_main() -> ! {
 
 
         PROC_MANAGER.create_process(0);
-        *PROC_MANAGER.procs[0].pid.get_mut() = -1;
+        PROC_MANAGER.procs[0].pid = -1;
 
         PROC_MANAGER.idle_proc_idx = 0;
         PROC_MANAGER.current_proc_idx = PROC_MANAGER.idle_proc_idx;
@@ -142,9 +142,9 @@ pub extern "C" fn kernel_main() -> ! {
 
         // println!("{:?}", proc_a);
         // println!("{:?}", proc_b);
-
+//
         // yield_();
-        // proc_b_entry();
+        // proc_b_entry_v2();
 
         // let paddr0: paddr_t = mem_manager.alloc_pages(2);
         // let paddr1: paddr_t = mem_manager.alloc_pages(1);
@@ -216,7 +216,7 @@ pub unsafe extern "C" fn proc_a_entry_v2() {
     for _ in 0..30000000 {
         println!("A");
         // println!("{:x}, {:x}", *proc_a.sp, *proc_b.sp);
-        // switch_context(&PROC_MANAGER.procs[0].sp, &PROC_MANAGER.procs[1].sp);
+        // switch_context(&PROC_MANAGER.procs[1].sp, &PROC_MANAGER.procs[2].sp);
         // yield_();
         PROC_MANAGER.yield_();
 
@@ -231,7 +231,7 @@ pub unsafe extern "C" fn proc_a_entry_v2() {
 pub unsafe extern "C" fn proc_b_entry_v2() {
     for _ in 0..30000000 {
         println!("B");
-        // switch_context(&PROC_MANAGER.procs[1].sp, &PROC_MANAGER.procs[0].sp);
+        // switch_context(&PROC_MANAGER.procs[2].sp, &PROC_MANAGER.procs[1].sp);
         PROC_MANAGER.yield_();
         // yield_();
 

@@ -36,16 +36,12 @@ impl PageManager {
             println!("out of memory...");
         }
 
-        // println!("out of memory...{:x}", (*self.next_addr.as_ptr()) as *const);
-
         self.alloc_zero(paddr as *mut u8, (n* PAGE_SIZE) as usize);
         paddr
     }
 
     pub fn alloc_zero(&self, buf: *mut u8, n: usize) -> *mut u8 {
         unsafe {
-            // println!("buf add: {:?}", buf.add(1));
-
             buf.write_bytes(0, n);
             buf
         }

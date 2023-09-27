@@ -2,68 +2,20 @@
 #![no_std]
 
 
-use core::arch::{asm, global_asm};
-use core::borrow::BorrowMut;
-use core::cell::Cell;
-use core::fmt;
+use core::arch::asm;
 mod io;
 mod kernel;
 mod macros;
 mod mem;
 mod proc;
-mod proc2;
+mod utils;
 
 const PAGE_SIZE: usize = 4096;
 
 use lazy_static::lazy_static;
 
 use kernel::kernel_entry;
-use proc::{PROC_MANAGER, ProcessManager};
-use proc2::{Process, ProcState};
-
-// lazy_static! {
-//     static ref GLOBAL_POINTER: *mut i32 = x;
-// }
-
-// static mut procs: [Process; 8] = [Process {
-//     pid: -1,
-//     state: State::PROC_UNUSED,
-//     sp: 0 as *mut i32,
-//     stack: [0; 8192]
-// }; 8];
-
-// static mut GLOBAL_PTR: *mut usize = &mut 0;
-
-// static mut proc_a: *mut Process = Process {
-//     pid: -1,
-//     state: State::PROC_RUNNABLE,
-//     sp: 0 as *mut i32,
-//     stack: [0; 8192]
-// }.borrow_mut();
-
-
-
-// static mut proc_b: *mut Process = Process {
-//     pid: -1,
-//     state: State::PROC_RUNNABLE,
-//     sp: 0 as *mut i32,
-//     stack: [0; 8192]
-// }.borrow_mut();
-
-// static mut idle_proc: *mut Process = Process {
-//     pid: -1,
-//     state: State::PROC_UNUSED,
-//     sp: 0 as *mut i32,
-//     stack: [0; 8192]
-// }.borrow_mut();
-
-// static mut current_proc: *mut Process = Process {
-//     pid: 0,
-//     state: State::PROC_UNUSED,
-//     sp: 0 as *mut i32,
-//     stack: [0; 8192]
-// }.borrow_mut();
-
+use proc::{PROC_MANAGER, ProcessManager, Process, ProcState};
 
 extern "C" {
     static mut __stack_top: *mut u8;
@@ -82,45 +34,9 @@ struct hoge {
 
 #[no_mangle]
 pub extern "C" fn kernel_main() -> ! {
-
-
-    // unsafe {
-    //     println!("pre: {}", __stack_top as i32);
-    // }
-
-    // let addr = fetch_address!("__free_ram");
-    // let addr2 = fetch_address!("__free_ram_end");
-
-    unsafe {
-        // GLOBAL_PTR.cast::<Process>().write(Process {
-        //     pid: -1,
-        //     state: State::PROC_RUNNABLE,
-        //     sp: 0 as *mut i32,
-        //     stack: [0; 8192]
-        // });
-        // println!("{:?}", GLOBAL_PTR.read());
-    }
-    // println!("{:x}", addr);
-    // println!("{:x}", addr2);
-
     write_csr!("stvec", kernel_entry);
-    // kernel_entry();
 
     unsafe {
-        // let mem_manager = PageManager {
-        //     ram: RAM {
-        //         entry_point: fetch_address!("__free_ram"),
-        //         end_point: fetch_address!("__free_ram_end")
-        //     },
-        //     next_addr: Cell::new(fetch_address!("__free_ram")),
-        // };
-
-        // let bcc_size = fetch_address!("__bss_end") - fetch_address!("__bss");
-        // mem_manager.alloc_zero(fetch_address!("__bss") as *mut u8, bcc_size);
-        // let mut proc_manager = ProcessManager::init();
-        // let p = Process::init();
-
-
         PROC_MANAGER.create_process(0);
         PROC_MANAGER.procs[0].pid = -1;
 
@@ -130,55 +46,8 @@ pub extern "C" fn kernel_main() -> ! {
         PROC_MANAGER.create_process(fetch_address!("proc_a_entry_v2"));
         PROC_MANAGER.create_process(fetch_address!("proc_b_entry_v2"));
 
-        // println!("{:?}", PROC_MANAGER);
-
-        // proc_a_entry_v2();
         PROC_MANAGER.yield_();
-        // idle_proc = create_process(0);
-        // current_proc = idle_proc;
-
-        // proc_a = create_process(fetch_address!("proc_a_entry"));
-        // proc_b = create_process(fetch_address!("proc_b_entry"));
-
-        // println!("{:?}", proc_a);
-        // println!("{:?}", proc_b);
-//
-        // yield_();
-        // proc_b_entry_v2();
-
-        // let paddr0: paddr_t = mem_manager.alloc_pages(2);
-        // let paddr1: paddr_t = mem_manager.alloc_pages(1);
-
-        // println!("alloc_pages test: paddr0={:x}", paddr0);
-        // println!("{:?}", *proc_manager.proc_a);
-
-        // println!("alloc_pages test: paddr1={:x}", paddr1);
-        // println!("{:x}", *mem_manager.next_addr.as_ptr());
-        // println!("alloc_pages test: paddr1={:?}", paddr1);
-
     }
-
-
-    // unsafe {
-    //     asm!(
-    //         "unimp",
-    //     );
-    // }
-
-
-    // write!(writer, "The numbers are {} and {}", 42, 1.0/3.0).unwrap();
-    // unsafe {
-    //     putchar(__stack_top as char);
-    // }
-    // }
-
-    // UART0の送信バッファに1文字ずつデータをストアする
-    // let uart0 = 0x10013000  as *mut u8;
-    // for c in b"Hello from Rust!".iter() {
-    //     unsafe {
-    //         *uart0 = *c as u8;
-    //     }
-    // }
 
     loop {}
 }
@@ -199,7 +68,7 @@ pub unsafe extern "C" fn proc_a_entry() {
 
 #[no_mangle]
 pub unsafe extern "C" fn proc_b_entry() {
-    for _ in 0..30000000 {
+    for _ in 0..300_000_000 {
         println!("B");
         // switch_context(&proc_b.sp, &proc_a.sp);
         // yield_();
@@ -213,12 +82,12 @@ pub unsafe extern "C" fn proc_b_entry() {
 
 #[no_mangle]
 pub unsafe extern "C" fn proc_a_entry_v2() {
-    for _ in 0..30000000 {
-        println!("A");
+    for _ in 0..300_000_000 {
+        // println!("A");
         // println!("{:x}, {:x}", *proc_a.sp, *proc_b.sp);
         // switch_context(&PROC_MANAGER.procs[1].sp, &PROC_MANAGER.procs[2].sp);
         // yield_();
-        PROC_MANAGER.yield_();
+        // PROC_MANAGER.yield_();
 
 
         unsafe {
@@ -242,29 +111,6 @@ pub unsafe extern "C" fn proc_b_entry_v2() {
     }
 }
 
-
-// #[no_mangle]
-// pub unsafe extern "C" fn yield_() {
-    // let mut next: *mut Process = idle_proc;
-
-    // for i in 0..8 {
-    //     let mut proc = procs[(current_proc.read().pid + i) as usize % 8];
-    //     if proc.state == State::PROC_RUNNABLE && proc.pid > 0 {
-    //         next = proc.borrow_mut();
-    //         break;
-    //     }
-    // }
-
-    // if next.read().pid == current_proc.read().pid {
-    //     return;
-    // }
-
-    // let prev = current_proc.borrow_mut();
-    // current_proc = next;
-
-    // switch_context(&prev.read().sp, &(*next).sp);
-// }
-
 #[no_mangle]
 pub extern "C" fn hello() {
     loop {
@@ -277,7 +123,6 @@ pub extern "C" fn hello() {
         }
     }
 }
-
 
 #[link_section = ".text.boot"]
 #[no_mangle]
@@ -320,32 +165,6 @@ pub fn sbi_call(mut arg0: i32, mut arg1: i32, arg2: i32, arg3: i32, arg4: i32, a
     }
 }
 
-// pub unsafe fn create_process(pc: i32) -> *mut Process {
-//     for (i, proc) in procs.iter_mut().enumerate() {
-//         if proc.state == State::PROC_UNUSED {
-//             /* 全て0で初期化されているので、0でwriteする必要がない */
-//             let sp: *mut i32 = proc.stack.as_mut_ptr().add(proc.stack.len()).cast::<i32>();
-//             let top_sp = sp.offset(-12);
-
-//             top_sp.write(pc);
-
-//             proc.pid = (i + 1) as i32;
-//             proc.state = State::PROC_RUNNABLE;
-//             proc.sp = top_sp;
-
-//             return proc;
-//         }
-//     }
-
-//     panic!("failed create");
-// }
-
-
-// #[no_mangle]
-// fn putchar(ch: char) {
-//     sbi_call(ch as i32, 0, 0, 0, 0, 0, 0, 1 /* Console Putchar */);
-// }
-
 // panic発生時のハンドラ
 use core::panic::PanicInfo;
 use core::ptr::write_bytes;
@@ -353,10 +172,7 @@ use core::ptr::write_bytes;
 use io::putchar;
 
 use crate::mem::{paddr_t, PageManager, RAM};
-// use crate::proc2::switch_context;
-// use crate::proc2::switch_context;
-// use crate::proc::{ProcessManager, Process, switch_context};
-// use crate::proc2::create_process;
+
 
 #[panic_handler]
 #[no_mangle]

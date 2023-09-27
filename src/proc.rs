@@ -2,9 +2,8 @@ use core::cell::{Cell, RefCell};
 use core::{arch::asm, borrow::BorrowMut};
 
 
-use crate::proc2::ProcState;
 use crate::{io::putchar, println};
-use crate::{Process, switch_context};
+use crate::{switch_context};
 
 
 type vaddr_t = i32;
@@ -18,6 +17,22 @@ pub struct ProcessManager {
     pub procs: [Process; PROC_MAX],
     pub current_proc_idx: usize,
     pub idle_proc_idx: usize,
+}
+
+#[derive(Clone, Debug)]
+#[repr(C, align(32))]
+pub struct Process {
+    pub pid: isize,      // プロセスID
+    pub state: ProcState,          // プロセスの状態
+    pub sp: usize,   // コンテキストスイッチ時のスタックポインタ
+    pub stack: [u8; 8192]
+}
+
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum ProcState {
+    RUNNABLE,
+    UNUSED,
+    STABLE,
 }
 
 pub static mut PROC_MANAGER: ProcessManager = ProcessManager {
@@ -88,19 +103,13 @@ impl ProcessManager {
             return;
         }
 
-        // println!("point: {:?}", &self.procs[next].stack[8191] as *const u8);
         asm!(
             "csrw sscratch, {0}", // sscratchは重要な情報の退避用レジスタ
             in(reg) self.procs[next].stack[8191] as *const u8
         );
 
-        // &self.procs[self.current_proc_idx].stack[8192]
-
         let prev = self.current_proc_idx;
         self.current_proc_idx = next;
-
-        // println!("point: {:?}", &self.procs[prev].sp);
-        // println!("point２: {:?}", self.procs[prev].sp);
 
         switch_context(&self.procs[prev].sp, &self.procs[self.current_proc_idx].sp);
     }

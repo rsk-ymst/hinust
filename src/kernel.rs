@@ -1,6 +1,25 @@
 use core::arch::asm;
 
-use crate::{read_csr, println};
+use crate::{read_csr, println, utils::is_aligned, PAGE_SIZE};
+
+const PAGE_V: usize = 1 << 0;
+const PAGE_R: usize = 1 << 1;
+const PAGE_W: usize = 1 << 2;
+const PAGE_X: usize = 1 << 3;
+const PAGE_U: usize = 1 << 4;
+
+pub fn map_page(table1: usize, vaddr: usize, paddr: usize, flags: usize) {
+    if is_aligned(vaddr, PAGE_SIZE) {
+        panic!();
+    }
+
+    if is_aligned(paddr, PAGE_SIZE) {
+        panic!();
+    }
+
+    let vpn1: usize = (vaddr >> 22) & 0x3ff;
+}
+
 
 #[no_mangle]
 pub extern "C" fn kernel_entry() {

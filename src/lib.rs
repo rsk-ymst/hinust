@@ -2,7 +2,7 @@
 #![no_std]
 
 
-use core::arch::asm;
+use core::{arch::asm, cell::Cell};
 mod io;
 mod kernel;
 mod macros;
@@ -37,14 +37,22 @@ pub extern "C" fn kernel_main() -> ! {
     write_csr!("stvec", kernel_entry);
 
     unsafe {
-        PROC_MANAGER.create_process(0);
+        let mut MEM_MANAGER: PageManager = PageManager {
+            ram: RAM {
+                entry_point: fetch_address!("__free_ram"),
+                end_point: fetch_address!("__free_ram_end")
+            },
+            next_addr: Cell::new(fetch_address!("__free_ram")),
+        };
+
+        PROC_MANAGER.create_process(0, &mut MEM_MANAGER);
         PROC_MANAGER.procs[0].pid = -1;
 
         PROC_MANAGER.idle_proc_idx = 0;
         PROC_MANAGER.current_proc_idx = PROC_MANAGER.idle_proc_idx;
 
-        PROC_MANAGER.create_process(fetch_address!("proc_a_entry_v2"));
-        PROC_MANAGER.create_process(fetch_address!("proc_b_entry_v2"));
+        PROC_MANAGER.create_process(fetch_address!("proc_a_entry_v2"), &mut MEM_MANAGER);
+        PROC_MANAGER.create_process(fetch_address!("proc_b_entry_v2"), &mut MEM_MANAGER);
 
         PROC_MANAGER.yield_();
     }
@@ -83,11 +91,12 @@ pub unsafe extern "C" fn proc_b_entry() {
 #[no_mangle]
 pub unsafe extern "C" fn proc_a_entry_v2() {
     for _ in 0..300_000_000 {
-        // println!("A");
+        #[cfg(debug_assertions)]
+        println!("A");
         // println!("{:x}, {:x}", *proc_a.sp, *proc_b.sp);
         // switch_context(&PROC_MANAGER.procs[1].sp, &PROC_MANAGER.procs[2].sp);
         // yield_();
-        // PROC_MANAGER.yield_();
+        PROC_MANAGER.yield_();
 
 
         unsafe {
@@ -99,6 +108,7 @@ pub unsafe extern "C" fn proc_a_entry_v2() {
 #[no_mangle]
 pub unsafe extern "C" fn proc_b_entry_v2() {
     for _ in 0..30000000 {
+        #[cfg(debug_assertions)]
         println!("B");
         // switch_context(&PROC_MANAGER.procs[2].sp, &PROC_MANAGER.procs[1].sp);
         PROC_MANAGER.yield_();

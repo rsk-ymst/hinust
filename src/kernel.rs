@@ -1,24 +1,28 @@
 use core::arch::asm;
 
-use crate::{read_csr, println, utils::is_aligned, PAGE_SIZE};
+use crate::{read_csr, println, utils::is_aligned, PAGE_SIZE, proc::PROC_MANAGER};
 
-const PAGE_V: usize = 1 << 0;
-const PAGE_R: usize = 1 << 1;
-const PAGE_W: usize = 1 << 2;
-const PAGE_X: usize = 1 << 3;
-const PAGE_U: usize = 1 << 4;
+pub const PAGE_V: isize = 1 << 0; // 有効化どうか
+const PAGE_R: isize = 1 << 1;
+const PAGE_W: isize = 1 << 2;
+const PAGE_X: isize = 1 << 3;
+const PAGE_U: isize = 1 << 4;
 
-pub fn map_page(table1: usize, vaddr: usize, paddr: usize, flags: usize) {
-    if is_aligned(vaddr, PAGE_SIZE) {
-        panic!();
-    }
+// pub fn map_page(table1: usize, vaddr: usize, paddr: usize, flags: usize) {
+//     if is_aligned(vaddr, PAGE_SIZE) {
+//         panic!();
+//     }
 
-    if is_aligned(paddr, PAGE_SIZE) {
-        panic!();
-    }
+//     if is_aligned(paddr, PAGE_SIZE) {
+//         panic!();
+//     }
 
-    let vpn1: usize = (vaddr >> 22) & 0x3ff;
-}
+//     let vpn1: usize = (vaddr >> 22) & 0x3ff;
+
+//     if unsafe { *(table1 as *mut usize).offset(vpn1 as isize) } & PAGE_V == 0 {
+//         // let pt_addr = ME
+//     }
+// }
 
 
 #[no_mangle]

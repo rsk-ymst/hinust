@@ -17,3 +17,6 @@ cc = "1.0.25"
 [dependencies.lazy_static]
 version = "1.0"
 features = ["spin_no_std"]
+
+[profile.dev]
+debug-assertions = false

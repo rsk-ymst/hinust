@@ -75,6 +75,7 @@ impl ProcessManager {
 
                 top_sp.write(pc);
 
+                // 各プロセスに対してページが存在する
                 let page_table = mem_manager.alloc_pages(1); // ページテーブルのサイズは4KB
 
                 let __kernel_base = fetch_address!("__kernel_base");
@@ -82,14 +83,10 @@ impl ProcessManager {
 
                 let mut paddr = __kernel_base;
 
-                // mem_manager.alloc_pages(1);
-                // mem_manager.alloc_pages(1);
-                // mem_manager.alloc_pages(1);
-
 
                 // あたかもカーネル空間全体をユーザランド側が使えるようになっている
                 while paddr < __free_ram_end {
-                    // println!("paddr!: {paddr:x}");
+                    // 仮想アドレスと物理アドレスの対応付け
                     mem_manager.map_page(page_table, paddr, paddr, PAGE_R | PAGE_W | PAGE_X);
                     paddr += PAGE_SIZE;
                 }

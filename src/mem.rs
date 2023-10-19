@@ -75,11 +75,8 @@ impl PageManager {
         if *pt0_paddr & PAGE_V == 0 {
             // 2段目のページテーブルが存在しないので作成する
             let pt_paddr = unsafe { self.alloc_pages(1) };
-            // println!("pt_paddr {:x}", pt_paddr);
 
             // ページ単位でどこにあるかを格納
-            // (pt0_addr as *mut isize).write(((pt_paddr / PAGE_SIZE) << 10) | PAGE_V);
-            // println!("x: {}", (pt_paddr / PAGE_SIZE) << 10 | PAGE_V);
             pt0_paddr.write(((pt_paddr / PAGE_SIZE) << 10) | PAGE_V);
         }
 

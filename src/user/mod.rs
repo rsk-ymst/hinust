@@ -1,6 +1,6 @@
 #[link_section = ".text.start"]
 #[no_mangle]
-pub extern "C" fn boot() {
+pub extern "C" fn start() {
     unsafe {
         asm!(
             "lui sp, %hi(__stack_top)",

@@ -92,7 +92,7 @@ pub unsafe extern "C" fn proc_b_entry() {
 pub unsafe extern "C" fn proc_a_entry_v2() {
     for _ in 0..300_000_000 {
         #[cfg(debug_assertions)]
-        println!("A");
+        // println!("A");
         // println!("{:x}, {:x}", *proc_a.sp, *proc_b.sp);
         // switch_context(&PROC_MANAGER.procs[1].sp, &PROC_MANAGER.procs[2].sp);
         // yield_();
@@ -109,7 +109,7 @@ pub unsafe extern "C" fn proc_a_entry_v2() {
 pub unsafe extern "C" fn proc_b_entry_v2() {
     for _ in 0..30000000 {
         #[cfg(debug_assertions)]
-        println!("B");
+        // println!("B");
         // switch_context(&PROC_MANAGER.procs[2].sp, &PROC_MANAGER.procs[1].sp);
         PROC_MANAGER.yield_();
         // yield_();

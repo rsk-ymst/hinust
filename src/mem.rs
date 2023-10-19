@@ -41,12 +41,9 @@ pub struct PageManager {
 // };
 
 impl PageManager {
-    
     pub unsafe fn alloc_pages(&self, n: usize) -> paddr_t {
         let paddr: paddr_t = *self.next_addr.as_ptr();
-        self.next_addr.set((paddr + n * PAGE_SIZE ));
-
-        // println!("{:x}", *self.next_addr.as_ptr());
+        self.next_addr.set(paddr + n * PAGE_SIZE);
 
         if self.ram.is_valid_address(paddr) {
             println!("out of memory...");
@@ -67,16 +64,14 @@ impl PageManager {
         if is_aligned(vaddr, PAGE_SIZE) {
             panic!();
         }
-    
+
         if is_aligned(paddr, PAGE_SIZE) {
             panic!();
         }
 
-        
         let vpn1 = (vaddr >> 22) & 0x3ff;
         let pt0_paddr = (table1 as *mut usize).offset(vpn1 as isize);
-        // println!("pt0_addr {pt0_addr}");
-    
+
         if *pt0_paddr & PAGE_V == 0 {
             // 2段目のページテーブルが存在しないので作成する
             let pt_paddr = unsafe { self.alloc_pages(1) };

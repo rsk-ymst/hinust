@@ -87,9 +87,9 @@ impl ProcessManager {
                 // mem_manager.alloc_pages(1);
 
 
+                // あたかもカーネル空間全体をユーザランド側が使えるようになっている
                 while paddr < __free_ram_end {
                     // println!("paddr!: {paddr:x}");
-                    // あたかもカーネルが使える空間全体をサーバ側が使えるようになっている
                     mem_manager.map_page(page_table, paddr, paddr, PAGE_R | PAGE_W | PAGE_X);
                     paddr += PAGE_SIZE;
                 }

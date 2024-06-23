@@ -1,3 +1,7 @@
+#![no_std]
+
+use core::arch::asm;
+
 #[link_section = ".text.start"]
 #[no_mangle]
 pub extern "C" fn start() {

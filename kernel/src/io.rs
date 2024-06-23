@@ -31,6 +31,8 @@ pub fn putchar(ch: char) {
     sbi_call(ch as i32, 0, 0, 0, 0, 0, 0, 1 /* Console Putchar */);
 }
 
+
+/* 以下は定型文 */
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => ($crate::io::_print(format_args!($($arg)*)));

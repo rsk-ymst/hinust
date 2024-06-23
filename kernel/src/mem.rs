@@ -61,11 +61,11 @@ impl PageManager {
     }
 
     pub unsafe fn map_page(&mut self, table1: usize, vaddr: usize, paddr: usize, flags: usize) {
-        if is_aligned(vaddr, PAGE_SIZE) {
+        if !is_aligned(vaddr, PAGE_SIZE) {
             panic!();
         }
 
-        if is_aligned(paddr, PAGE_SIZE) {
+        if !is_aligned(paddr, PAGE_SIZE) {
             panic!();
         }
 

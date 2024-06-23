@@ -1,5 +1,5 @@
 [package]
-name = "os_dev"
+name = "kernel"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 spin = "0.5.2"
+common = {path = "../common"}
 
 [lib]
 crate-type = ["staticlib"]

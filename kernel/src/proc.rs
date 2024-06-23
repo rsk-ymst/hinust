@@ -9,7 +9,7 @@ use crate::{switch_context, fetch_address};
 
 type vaddr_t = i32;
 
-const PROC_MAX: usize = 3;
+const PROC_MAX: usize = 4;
 
 
 #[derive(Debug)]
@@ -60,6 +60,13 @@ pub static mut PROC_MANAGER: ProcessManager = ProcessManager {
             stack: [0; 8192],
             page_table: 0,
         },
+        Process {
+            pid: -1,
+            state: ProcState::UNUSED,
+            sp: 0,
+            stack: [0; 8192],
+            page_table: 0,
+        },
     ],
     current_proc_idx: 0,
     idle_proc_idx: 0
@@ -70,10 +77,10 @@ impl ProcessManager {
     pub unsafe fn create_process(&mut self, pc: i32, mem_manager: &mut PageManager) {
         for (i, proc) in self.procs.iter_mut().enumerate() {
             if proc.state == ProcState::UNUSED {
-                let sp = proc.stack.as_mut_ptr().add(proc.stack.len()).cast::<i32>();
-                let top_sp = sp.offset(-12);
+                let stack_bottom = proc.stack.as_mut_ptr().add(proc.stack.len()).cast::<i32>();
+                let sp = stack_bottom.offset(-12);
 
-                top_sp.write(pc);
+                sp.write(pc);
 
                 // 各プロセスに対してページが存在する
                 let page_table = mem_manager.alloc_pages(1); // ページテーブルのサイズは4KB
@@ -82,7 +89,6 @@ impl ProcessManager {
                 let __free_ram_end = fetch_address!("__free_ram_end");
 
                 let mut paddr = __kernel_base;
-
 
                 // あたかもカーネル空間全体をユーザランド側が使えるようになっている
                 while paddr < __free_ram_end {
@@ -93,7 +99,7 @@ impl ProcessManager {
 
                 proc.pid = (i + 1) as isize;
                 proc.state = ProcState::RUNNABLE;
-                proc.sp = top_sp as usize;
+                proc.sp = sp as usize;
                 proc.page_table = page_table;
 
                 return;
@@ -137,9 +143,9 @@ impl ProcessManager {
 
         asm!(
             "sfence.vma",
-            "csrw satp, {0}",
+            "csrw satp, {}",
             "sfence.vma",
-            "csrw sscratch, {1}", // sscratchは重要な情報の退避用レジスタ
+            "csrw sscratch, {}", // sscratchは重要な情報の退避用レジスタ
             in(reg) (SATP_SV32 | self.procs[next].page_table / PAGE_SIZE) as isize,
             in(reg) self.procs[next].stack[8191] as *const u8
         );
@@ -147,6 +153,6 @@ impl ProcessManager {
         let prev = self.current_proc_idx;
         self.current_proc_idx = next;
 
-        switch_context(&self.procs[prev].sp, &self.procs[self.current_proc_idx].sp);
+        switch_context(&self.procs[prev].sp, &self.procs[next].sp);
     }
 }

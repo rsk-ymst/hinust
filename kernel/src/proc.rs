@@ -1,16 +1,16 @@
 use core::cell::{Cell, RefCell};
+use core::ffi::c_void;
+use core::ptr;
 use core::{arch::asm, borrow::BorrowMut};
 
-
-use crate::mem::{PageManager, PAGE_R, PAGE_W, PAGE_X, SATP_SV32, PAGE_SIZE};
-use crate::{io::putchar, println};
-use crate::{switch_context, fetch_address};
-
+use crate::mem::SSTATUS_SPIE;
+use crate::mem::{paddr_t, PageManager, PAGE_R, PAGE_SIZE, PAGE_U, PAGE_W, PAGE_X, SATP_SV32};
+use crate::println;
+use crate::{fetch_address, switch_context};
 
 type vaddr_t = i32;
 
 const PROC_MAX: usize = 4;
-
 
 #[derive(Debug)]
 #[repr(C, align(32))]
@@ -23,11 +23,11 @@ pub struct ProcessManager {
 #[derive(Clone, Debug)]
 #[repr(C, align(32))]
 pub struct Process {
-    pub pid: isize,         // プロセスID
-    pub state: ProcState,   // プロセスの状態
-    pub sp: usize,          // コンテキストスイッチ時のスタックポインタ
+    pub pid: isize,       // プロセスID
+    pub state: ProcState, // プロセスの状態
+    pub sp: usize,        // コンテキストスイッチ時のスタックポインタ
     pub page_table: usize,
-    pub stack: [u8; 8192]
+    pub stack: [u8; 8192],
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -45,7 +45,7 @@ pub static mut PROC_MANAGER: ProcessManager = ProcessManager {
             sp: 0,
             stack: [0; 8192],
             page_table: 0,
-            },
+        },
         Process {
             pid: -1,
             state: ProcState::UNUSED,
@@ -69,41 +69,84 @@ pub static mut PROC_MANAGER: ProcessManager = ProcessManager {
         },
     ],
     current_proc_idx: 0,
-    idle_proc_idx: 0
+    idle_proc_idx: 0,
 };
+
+unsafe fn user_entry() {
+    asm!(
+        "csrw sepc, {}", // ユーザランドのプログラムカウンタを設定
+        "csrw sstatus, {}", // SPIEを立て，割り込みを有効か
+        "sret",
+        in(reg) USER_BASE,
+        in (reg) SSTATUS_SPIE,
+    );
+}
+
+pub const USER_BASE: paddr_t = 0x1000000;
 
 impl ProcessManager {
     #[no_mangle]
-    pub unsafe fn create_process(&mut self, pc: i32, mem_manager: &mut PageManager) {
+    pub unsafe fn create_process(
+        &mut self,
+        image: *mut c_void,
+        image_size: i32,
+        mem_manager: &mut PageManager,
+    ) {
         for (i, proc) in self.procs.iter_mut().enumerate() {
-            if proc.state == ProcState::UNUSED {
-                let stack_bottom = proc.stack.as_mut_ptr().add(proc.stack.len()).cast::<i32>();
-                let sp = stack_bottom.offset(-12);
+            if proc.state != ProcState::UNUSED {
+                continue;
+            }
 
-                sp.write(pc);
+            let stack_bottom = proc.stack.as_mut_ptr().add(proc.stack.len()).cast::<i32>();
+            let sp = stack_bottom.offset(-12);
 
-                // 各プロセスに対してページが存在する
-                let page_table = mem_manager.alloc_pages(1); // ページテーブルのサイズは4KB
+            sp.write(user_entry as i32);
 
-                let __kernel_base = fetch_address!("__kernel_base");
-                let __free_ram_end = fetch_address!("__free_ram_end");
+            // 各プロセスに対してページテーブル1段目を作成
+            let page_table = mem_manager.alloc_pages(1); // ページテーブルのサイズは4KB
 
-                let mut paddr = __kernel_base;
+            let __kernel_base = fetch_address!("__kernel_base");
+            let __free_ram_end = fetch_address!("__free_ram_end");
 
-                // あたかもカーネル空間全体をユーザランド側が使えるようになっている
-                while paddr < __free_ram_end {
-                    // 仮想アドレスと物理アドレスの対応付け
-                    mem_manager.map_page(page_table, paddr, paddr, PAGE_R | PAGE_W | PAGE_X);
-                    paddr += PAGE_SIZE;
-                }
+            let mut paddr = __kernel_base;
 
-                proc.pid = (i + 1) as isize;
-                proc.state = ProcState::RUNNABLE;
-                proc.sp = sp as usize;
-                proc.page_table = page_table;
+            // あたかもカーネル空間全体をユーザランド側が使えるようになっている
+            // カーネルのページをマッピング
+            while paddr < __free_ram_end {
+                // 仮想アドレスと物理アドレスの対応付け
+                mem_manager.map_page(page_table, paddr, paddr, PAGE_R | PAGE_W | PAGE_X);
+                paddr += PAGE_SIZE;
+            }
 
+            if image.is_null() {
                 return;
             }
+
+            println!("image size {:x}", image_size);
+            for offset in (0..image_size).step_by(PAGE_SIZE) {
+                // println!(" --> {:x}", offset);
+                // println!("offset --> {}", offset);
+                let page = mem_manager.alloc_pages(1);
+                ptr::copy(
+                    image.offset(offset as isize),
+                    page as *mut c_void,
+                    PAGE_SIZE,
+                );
+
+                mem_manager.map_page(
+                    page_table,
+                    USER_BASE + offset as usize,
+                    page,
+                    PAGE_U | PAGE_R | PAGE_W | PAGE_X,
+                );
+            }
+
+            proc.pid = (i + 1) as isize;
+            proc.state = ProcState::RUNNABLE;
+            proc.sp = sp as usize;
+            proc.page_table = page_table;
+
+            return;
         }
 
         panic!("failed create");
@@ -139,7 +182,6 @@ impl ProcessManager {
         // println!("page_table --> {:x}", self.procs[next].page_table);
         // println!("page_table_idx --> {}", (self.procs[next].page_table / PAGE_SIZE) & 0x3ff);
         // println!("...{:b}", SATP_SV32);
-
 
         asm!(
             "sfence.vma",

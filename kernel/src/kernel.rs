@@ -1,6 +1,8 @@
 use core::arch::asm;
 
-use crate::{read_csr, println, utils::is_aligned, PAGE_SIZE, proc::PROC_MANAGER};
+use common::putchar;
+
+use crate::{println, proc::PROC_MANAGER, read_csr, utils::is_aligned, write_csr, PAGE_SIZE};
 
 pub const PAGE_V: isize = 1 << 0; // 有効化どうか
 const PAGE_R: isize = 1 << 1;
@@ -24,16 +26,15 @@ const PAGE_U: isize = 1 << 4;
 //     }
 // }
 
-
 #[no_mangle]
 pub extern "C" fn kernel_entry() {
     /*
-    　inoutは引数として使われ、かつ値が変わるもの
+    inoutは引数として使われ、かつ値が変わるもの
       inは単なる引数として使われる
       outは結果を書き込むものとして使われる
      */
 
-     unsafe {
+    unsafe {
         // __stack_top = 0x80200000 as *mut u8;
         asm!(
             "csrrw sp, sscratch, sp",
@@ -68,16 +69,12 @@ pub extern "C" fn kernel_entry() {
             "sw s9,  4 * 27(sp)",
             "sw s10, 4 * 28(sp)",
             "sw s11, 4 * 29(sp)",
-
             "csrr a0, sscratch",
             "sw a0, 4 * 30(sp)",
-
             "addi a0, sp, 4 * 31",
             "csrw sscratch, a0",
-
             "mv a0, sp",
             "call handle_trap",
-
             "lw ra,  4 * 0(sp)",
             "lw gp,  4 * 1(sp)",
             "lw tp,  4 * 2(sp)",
@@ -147,11 +144,41 @@ pub struct trap_frame {
     pub sp: i32,
 }
 
+pub const SCAUSE_ECALL: i32 = 8;
+
 #[no_mangle]
-pub extern "C" fn handle_trap(trap_frame: *const trap_frame) {
+pub unsafe extern "C" fn handle_trap(trap_frame: *const trap_frame) {
     let scause = read_csr!("scause");
     let stval = read_csr!("stval");
-    let user_pc = read_csr!("sepc");
+    let mut user_pc = read_csr!("sepc");
 
-    println!("unexpected trap scause={:x}, stval={:x}, sepc={:x}", scause, stval, user_pc);
+    if scause == SCAUSE_ECALL {
+        handle_syscall(trap_frame);
+        user_pc +=4;
+    } else {
+        println!(
+            "unexpected trap scause={:x}, stval={:x}, sepc={:x}",
+            scause, stval, user_pc
+        );
+
+        loop {}
+    }
+
+    write_csr!("sepc", user_pc);
+}
+
+pub const SYS_PUTCHAR: i32 = 1;
+pub unsafe fn handle_syscall(trap_frame: *const trap_frame) {
+    // let frame = *trap_frame;
+
+    match (*trap_frame).a3  {
+        SYS_PUTCHAR => {
+            putchar(((*trap_frame).a0 as u8 & 0xff) as char);
+            return;
+        }
+        _ => {
+            panic!()
+        }
+    }
+
 }

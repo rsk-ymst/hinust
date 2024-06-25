@@ -39,7 +39,7 @@ pub fn putchar(ch: char) {
 /* 以下は定型文 */
 #[macro_export]
 macro_rules! print {
-    ($($arg:tt)*) => ($crate::_print(format_args!($($arg)*)));
+    ($($arg:tt)*) => ($crate::io::_print(format_args!($($arg)*)));
 }
 
 #[macro_export]
@@ -47,12 +47,6 @@ macro_rules! println {
     () => ($crate::print!("\n"));
     ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
 }
-
-// #[macro_export]
-// macro_rules! println2 {
-//     () => ($crate::print!("\n"));
-//     ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
-// }
 
 #[doc(hidden)]
 pub fn _print(args: fmt::Arguments) {
@@ -88,10 +82,10 @@ pub fn sbi_call(mut arg0: i32, mut arg1: i32, arg2: i32, arg3: i32, arg4: i32, a
     }
 }
 
-// #[panic_handler]
-// #[no_mangle]
-// pub fn dummy_panic(info: &PanicInfo) -> ! {
-//     // 何もせず、無限ループする
-//     // println!("{}", info);
-//     loop{}
-// }
+#[panic_handler]
+#[no_mangle]
+pub fn dummy_panic(info: &PanicInfo) -> ! {
+    // 何もせず、無限ループする
+    // println!("{}", info);
+    loop{}
+}

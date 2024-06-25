@@ -13,6 +13,7 @@ pub const PAGE_R: usize = 1 << 1;
 pub const PAGE_W: usize = 1 << 2;
 pub const PAGE_X: usize = 1 << 3;
 pub const PAGE_U: usize = 1 << 4;
+pub const SSTATUS_SPIE: usize = 1 << 5;
 
 #[derive(Debug, Clone)]
 pub struct RAM {
@@ -29,7 +30,7 @@ impl RAM {
 #[derive(Debug, Clone)]
 pub struct PageManager {
     pub ram: RAM,
-    pub next_addr: Cell<paddr_t>
+    pub next_addr: Cell<paddr_t>,
 }
 
 // static mut MEM_MANAGER: PageManager = PageManager {
@@ -49,7 +50,7 @@ impl PageManager {
             println!("out of memory...");
         }
 
-        self.alloc_zero(paddr as *mut u8, (n* PAGE_SIZE ) as usize);
+        self.alloc_zero(paddr as *mut u8, (n * PAGE_SIZE) as usize);
         paddr
     }
 
@@ -84,6 +85,14 @@ impl PageManager {
         let vpn0: usize = (vaddr >> 12) & 0x3ff;
         let table0 = ((*pt0_paddr >> 10) * PAGE_SIZE) as *mut usize; // アドレス値に変換
 
-        table0.offset(vpn0 as isize).write(((paddr / PAGE_SIZE) << 10) | flags |PAGE_V);
+        table0
+            .offset(vpn0 as isize)
+            .write(((paddr / PAGE_SIZE) << 10) | flags | PAGE_V);
+    }
+}
+
+pub fn memcpy(dst: *mut u8, src: *const u8, n: usize) {
+    unsafe {
+        core::ptr::copy(src, dst, n);
     }
 }

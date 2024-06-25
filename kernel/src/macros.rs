@@ -1,7 +1,6 @@
 // pub use crate::{cramp32_csrs, cramp32_csrsi};
 pub use core::arch::asm;
 
-
 #[macro_export]
 macro_rules! cramp32_csrsi {
     ($reg: expr, $imm: expr $(,)?) => {

@@ -28,6 +28,10 @@ cd kernel
 cargo build
 cd ..
 
+cd user/shell 
+cargo build
+cd ../..
+
 # シェル
 
 # $GCC -T kernel.ld $TARGET_LIB $SWITCH -Wl,-Map=$DEBUG_DIR/kernel.map -o $ELF_DIR/kernel.elf -nostdlib
@@ -47,7 +51,8 @@ $GCC -T kernel.ld $TARGET_LIB $SWITCH -Wl,-Map=$DEBUG_DIR/kernel.map -o $ELF_DIR
     $BIN_DIR/shell.bin.o
 
 
-llvm-objdump -d $ELF_DIR/kernel.elf > $ELF_DIR/test
+llvm-objdump -d $ELF_DIR/kernel.elf > $ELF_DIR/kernel.elf.out
+llvm-objdump -d $ELF_DIR/shell.elf > $ELF_DIR/shell.elf.out
 llvm-objdump -d '/home/ymst/_repo/hinust/target/riscv32imac-unknown-none-elf/debug/libos_dev.a' > $ELF_DIR/test2
 
 riscv32-unknown-linux-gnu-objdump -D $ELF_DIR/kernel.elf > $DEBUG_DIR/kernel.disasm

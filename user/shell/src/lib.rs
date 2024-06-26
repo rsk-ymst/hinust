@@ -1,11 +1,13 @@
 #![no_std]
 
 use core::panic::PanicInfo;
-use mystd::println;
+use mystd::*;
 
 #[no_mangle]
 pub unsafe fn main() {
-    println!("hello, shell");
+    // println!("hello, shell");
+    putchar('A');
+    // syscall(0, 0, 0, 0);
     loop {}
 }
 

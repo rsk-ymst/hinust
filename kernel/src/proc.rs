@@ -30,6 +30,7 @@ pub struct Process {
     pub stack: [u8; 8192],
 }
 
+#[repr(C, align(32))]
 #[derive(Copy, Clone, PartialEq, Debug)]
 pub enum ProcState {
     RUNNABLE,
@@ -72,13 +73,16 @@ pub static mut PROC_MANAGER: ProcessManager = ProcessManager {
     idle_proc_idx: 0,
 };
 
+#[no_mangle]
+// #[naked]
 unsafe fn user_entry() {
     asm!(
-        "csrw sepc, {}", // ユーザランドのプログラムカウンタを設定
-        "csrw sstatus, {}", // SPIEを立て，割り込みを有効か
+        "csrw sepc, {0}", // ユーザランドのプログラムカウンタを設定
+        "csrw sstatus, {1}", // SPIEを立て，割り込みを有効か
         "sret",
         in(reg) USER_BASE,
         in (reg) SSTATUS_SPIE,
+        options(noreturn)
     );
 }
 
@@ -122,17 +126,20 @@ impl ProcessManager {
                 return;
             }
 
-            println!("image size {:x}", image_size);
+            // println!("image size {:x}", image_size);
             for offset in (0..image_size).step_by(PAGE_SIZE) {
                 // println!(" --> {:x}", offset);
                 // println!("offset --> {}", offset);
                 let page = mem_manager.alloc_pages(1);
+
+                // ユーザプログラムのバイナリ情報をコピー
                 ptr::copy(
                     image.offset(offset as isize),
                     page as *mut c_void,
                     PAGE_SIZE,
                 );
 
+                // コピーしたバイナリの情報とページテーブルを対応付け
                 mem_manager.map_page(
                     page_table,
                     USER_BASE + offset as usize,
@@ -189,7 +196,7 @@ impl ProcessManager {
             "sfence.vma",
             "csrw sscratch, {}", // sscratchは重要な情報の退避用レジスタ
             in(reg) (SATP_SV32 | self.procs[next].page_table / PAGE_SIZE) as isize,
-            in(reg) self.procs[next].stack[8191] as *const u8
+            in(reg) (&(self.procs[next].stack[8191]) as *const u8)// ここ適切に設定しないと割り込みが機能しない！！
         );
 
         let prev = self.current_proc_idx;

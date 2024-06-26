@@ -27,93 +27,98 @@ const PAGE_U: isize = 1 << 4;
 // }
 
 #[no_mangle]
-pub extern "C" fn kernel_entry() {
+pub unsafe extern "C" fn kernel_entry() {
     /*
-    inoutは引数として使われ、かつ値が変わるもの
-      inは単なる引数として使われる
-      outは結果を書き込むものとして使われる
-     */
+        inoutは引数として使われ、かつ値が変わるもの
+        inは単なる引数として使われる
+        outは結果を書き込むものとして使われる
+    */
 
-    unsafe {
-        // __stack_top = 0x80200000 as *mut u8;
-        asm!(
-            "csrrw sp, sscratch, sp",
-            "addi sp, sp, -4 * 31",
-            "sw ra,  4 * 0(sp)",
-            "sw gp,  4 * 1(sp)",
-            "sw tp,  4 * 2(sp)",
-            "sw t0,  4 * 3(sp)",
-            "sw t1,  4 * 4(sp)",
-            "sw t2,  4 * 5(sp)",
-            "sw t3,  4 * 6(sp)",
-            "sw t4,  4 * 7(sp)",
-            "sw t5,  4 * 8(sp)",
-            "sw t6,  4 * 9(sp)",
-            "sw a0,  4 * 10(sp)",
-            "sw a1,  4 * 11(sp)",
-            "sw a2,  4 * 12(sp)",
-            "sw a3,  4 * 13(sp)",
-            "sw a4,  4 * 14(sp)",
-            "sw a5,  4 * 15(sp)",
-            "sw a6,  4 * 16(sp)",
-            "sw a7,  4 * 17(sp)",
-            "sw s0,  4 * 18(sp)",
-            "sw s1,  4 * 19(sp)",
-            "sw s2,  4 * 20(sp)",
-            "sw s3,  4 * 21(sp)",
-            "sw s4,  4 * 22(sp)",
-            "sw s5,  4 * 23(sp)",
-            "sw s6,  4 * 24(sp)",
-            "sw s7,  4 * 25(sp)",
-            "sw s8,  4 * 26(sp)",
-            "sw s9,  4 * 27(sp)",
-            "sw s10, 4 * 28(sp)",
-            "sw s11, 4 * 29(sp)",
-            "csrr a0, sscratch",
-            "sw a0, 4 * 30(sp)",
-            "addi a0, sp, 4 * 31",
-            "csrw sscratch, a0",
-            "mv a0, sp",
-            "call handle_trap",
-            "lw ra,  4 * 0(sp)",
-            "lw gp,  4 * 1(sp)",
-            "lw tp,  4 * 2(sp)",
-            "lw t0,  4 * 3(sp)",
-            "lw t1,  4 * 4(sp)",
-            "lw t2,  4 * 5(sp)",
-            "lw t3,  4 * 6(sp)",
-            "lw t4,  4 * 7(sp)",
-            "lw t5,  4 * 8(sp)",
-            "lw t6,  4 * 9(sp)",
-            "lw a0,  4 * 10(sp)",
-            "lw a1,  4 * 11(sp)",
-            "lw a2,  4 * 12(sp)",
-            "lw a3,  4 * 13(sp)",
-            "lw a4,  4 * 14(sp)",
-            "lw a5,  4 * 15(sp)",
-            "lw a6,  4 * 16(sp)",
-            "lw a7,  4 * 17(sp)",
-            "lw s0,  4 * 18(sp)",
-            "lw s1,  4 * 19(sp)",
-            "lw s2,  4 * 20(sp)",
-            "lw s3,  4 * 21(sp)",
-            "lw s4,  4 * 22(sp)",
-            "lw s5,  4 * 23(sp)",
-            "lw s6,  4 * 24(sp)",
-            "lw s7,  4 * 25(sp)",
-            "lw s8,  4 * 26(sp)",
-            "lw s9,  4 * 27(sp)",
-            "lw s10, 4 * 28(sp)",
-            "lw s11, 4 * 29(sp)",
-            "lw sp,  4 * 30(sp)",
-            "sret",
-        );
-    }
+    asm!(
+        "csrrw sp, sscratch, sp",
+        "addi sp, sp, -4 * 31",
+        "sw ra,  4 * 0(sp)",
+        "sw gp,  4 * 1(sp)",
+        "sw tp,  4 * 2(sp)",
+        "sw t0,  4 * 3(sp)",
+        "sw t1,  4 * 4(sp)",
+        "sw t2,  4 * 5(sp)",
+        "sw t3,  4 * 6(sp)",
+        "sw t4,  4 * 7(sp)",
+        "sw t5,  4 * 8(sp)",
+        "sw t6,  4 * 9(sp)",
+        "sw a0,  4 * 10(sp)",
+        "sw a1,  4 * 11(sp)",
+        "sw a2,  4 * 12(sp)",
+        "sw a3,  4 * 13(sp)",
+        "sw a4,  4 * 14(sp)",
+        "sw a5,  4 * 15(sp)",
+        "sw a6,  4 * 16(sp)",
+        "sw a7,  4 * 17(sp)",
+        "sw s0,  4 * 18(sp)",
+        "sw s1,  4 * 19(sp)",
+        "sw s2,  4 * 20(sp)",
+        "sw s3,  4 * 21(sp)",
+        "sw s4,  4 * 22(sp)",
+        "sw s5,  4 * 23(sp)",
+        "sw s6,  4 * 24(sp)",
+        "sw s7,  4 * 25(sp)",
+        "sw s8,  4 * 26(sp)",
+        "sw s9,  4 * 27(sp)",
+        "sw s10, 4 * 28(sp)",
+        "sw s11, 4 * 29(sp)",
+        // 例外発生時のspを保存
+        "csrr a0, sscratch",
+        "sw a0, 4 * 30(sp)",
+
+        "addi a0, sp, 4 * 31",
+        "csrw sscratch, a0",
+        // スタックトップの値を引数にして，call
+        "mv a0, sp", 
+        "call handle_trap",
+
+        "lw ra,  4 * 0(sp)",
+        "lw gp,  4 * 1(sp)",
+        "lw tp,  4 * 2(sp)",
+        "lw t0,  4 * 3(sp)",
+        "lw t1,  4 * 4(sp)",
+        "lw t2,  4 * 5(sp)",
+        "lw t3,  4 * 6(sp)",
+        "lw t4,  4 * 7(sp)",
+        "lw t5,  4 * 8(sp)",
+        "lw t6,  4 * 9(sp)",
+        "lw a0,  4 * 10(sp)",
+        "lw a1,  4 * 11(sp)",
+        "lw a2,  4 * 12(sp)",
+        "lw a3,  4 * 13(sp)",
+        "lw a4,  4 * 14(sp)",
+        "lw a5,  4 * 15(sp)",
+        "lw a6,  4 * 16(sp)",
+        "lw a7,  4 * 17(sp)",
+        "lw s0,  4 * 18(sp)",
+        "lw s1,  4 * 19(sp)",
+        "lw s2,  4 * 20(sp)",
+        "lw s3,  4 * 21(sp)",
+        "lw s4,  4 * 22(sp)",
+        "lw s5,  4 * 23(sp)",
+        "lw s6,  4 * 24(sp)",
+        "lw s7,  4 * 25(sp)",
+        "lw s8,  4 * 26(sp)",
+        "lw s9,  4 * 27(sp)",
+        "lw s10, 4 * 28(sp)",
+        "lw s11, 4 * 29(sp)",
+        "lw sp,  4 * 30(sp)",
+        "sret",
+        options(noreturn)
+    );
 }
 
-pub struct trap_frame {
+#[derive(Debug, Clone, Copy)]
+#[repr(C, align(32))]
+pub struct TrapFrame {
     pub ra: i32,
     pub gp: i32,
+    pub tp: i32,
     pub t0: i32,
     pub t1: i32,
     pub t2: i32,
@@ -147,14 +152,17 @@ pub struct trap_frame {
 pub const SCAUSE_ECALL: i32 = 8;
 
 #[no_mangle]
-pub unsafe extern "C" fn handle_trap(trap_frame: *const trap_frame) {
+pub unsafe extern "C" fn handle_trap(trap_frame: *const TrapFrame) {
     let scause = read_csr!("scause");
     let stval = read_csr!("stval");
     let mut user_pc = read_csr!("sepc");
 
+    println!("{:?}", *trap_frame);
+    println!("{}", scause);
+
     if scause == SCAUSE_ECALL {
-        handle_syscall(trap_frame);
-        user_pc +=4;
+        handle_syscall(*trap_frame);
+        user_pc += 4;
     } else {
         println!(
             "unexpected trap scause={:x}, stval={:x}, sepc={:x}",
@@ -168,17 +176,17 @@ pub unsafe extern "C" fn handle_trap(trap_frame: *const trap_frame) {
 }
 
 pub const SYS_PUTCHAR: i32 = 1;
-pub unsafe fn handle_syscall(trap_frame: *const trap_frame) {
-    // let frame = *trap_frame;
+pub unsafe fn handle_syscall(trap_frame: TrapFrame) {
+    let frame = trap_frame;
 
-    match (*trap_frame).a3  {
+    match frame.a3 {
         SYS_PUTCHAR => {
-            putchar(((*trap_frame).a0 as u8 & 0xff) as char);
+            println!("yes1");
+            putchar((frame.a0 as u8 & 0xff) as char);
             return;
         }
         _ => {
             panic!()
         }
     }
-
 }

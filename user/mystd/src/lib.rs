@@ -7,13 +7,15 @@ pub struct Writer {}
 
 impl fmt::Write for Writer {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        self.write_byte(s);
+        unsafe {
+            self.write_byte(s);
+        }
         Ok(())
     }
 }
 
 impl Writer {
-    pub fn write_byte(&mut self, str: &str) {
+    pub unsafe fn write_byte(&mut self, str: &str) {
         for c in str.chars() {
             putchar(c)
         }
@@ -22,16 +24,14 @@ impl Writer {
 
 #[link_section = ".text.start"]
 #[no_mangle]
-pub extern "C" fn start() {
-    unsafe {
-        asm!(
-            "lui sp, %hi(__stack_top)",
-            "addi sp, sp, %lo(__stack_top)",
-            "call main",
-            "call exit",
-            options(nostack)
-        );
-    }
+pub unsafe extern "C" fn start() {
+    asm!(
+        "lui sp, %hi(__stack_top)",
+        "addi sp, sp, %lo(__stack_top)",
+        "call main",
+        "call exit",
+        options(nostack)
+    );
 }
 
 #[no_mangle]
@@ -40,21 +40,23 @@ pub extern "C" fn exit() -> ! {
 }
 
 #[no_mangle]
-pub fn syscall(mut sysno: i32, mut arg0: i32, mut arg1: i32, mut arg2: i32) -> i32 {
-    unsafe {
-        asm!(
-            "ecall",
-            inout("a0") arg0, // キャストっぽく認識すると良い
-            inout("a1") arg1,
-            inout("a2") arg2,
-            inout("a3") sysno,
-        );
-    }
+pub unsafe fn syscall(mut sysno: i32, mut arg0: i32, mut arg1: i32, mut arg2: i32) -> i32 {
+    asm!(
+        "mv a0, {0}",
+        "mv a1, {1}",
+        "mv a2, {2}",
+        "mv a3, {3}",
+        "ecall",
+        in(reg) arg0, // キャストっぽく認識すると良い
+        in(reg) arg1,
+        in(reg) arg2,
+        in(reg) sysno,
+    );
 
     arg0
 }
 
-pub fn putchar(c: char) {
+pub unsafe fn putchar(c: char) {
     syscall(SYS_PUTCHAR, c as i32, 0, 0);
 }
 

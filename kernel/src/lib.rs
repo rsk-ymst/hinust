@@ -8,6 +8,7 @@ mod macros;
 mod mem;
 mod proc;
 mod utils;
+mod syscall;
 // mod use
 
 const PAGE_SIZE: usize = 4096;
@@ -63,6 +64,7 @@ pub unsafe extern "C" fn kernel_main() -> ! {
     // println!("_binary___bin_shell_bin_size: {:x}", fetch_address!("_binary___bin_shell_bin_size"));
 
     // PROC_MANAGER.create_process(ptr::null_mut(), 0, &mut MEM_MANAGER);
+    // println!("create_process: {:?}", fetch_address!("_binary___bin_shell_bin_start"));
     PROC_MANAGER.create_process(
         fetch_address!("_binary___bin_shell_bin_start") as *mut c_void,
         fetch_address!("_binary___bin_shell_bin_size") as i32,
@@ -111,7 +113,7 @@ pub unsafe extern "C" fn kernel_main() -> ! {
 pub unsafe extern "C" fn proc_a_entry_v2() {
     for _ in 0..300_000_000 {
         // #[cfg(debug_assertions)]
-        println!("AAA");
+        // println!("AAA");
 
         for _ in 0..1_000_000 {
             unsafe {
@@ -184,32 +186,6 @@ pub extern "C" fn boot() {
         );
     }
 }
-
-// #[no_mangle]
-// pub fn sbi_call(mut arg0: i32, mut arg1: i32, arg2: i32, arg3: i32, arg4: i32, arg5: i32, fid: i32, eid: i32) {
-//     /*
-//     　inoutは引数として使われ、かつ値が変わるもの
-//       inは単なる引数として使われる
-//       outは結果を書き込むものとして使われる
-//      */
-//     unsafe {
-//         asm!(
-//             "ecall",
-//             // inout("a0") arg0, // キャストっぽく認識すると良い
-//             // inout("a1") arg1,
-//             // in("a2") arg2,
-//             // in("a3") arg3,
-//             // in("a4") arg4,
-//             // in("a5") arg5,
-//             // in("a6") fid,
-//             // in("a7") eid,
-//             //            // out("a1") a1,
-//             // : a0 = inout(reg) arg0, a1 = inout(reg) a2
-//             // :
-//             clobber_abi("C"), //
-//         );
-//     }
-// }
 
 // panic発生時のハンドラ
 use core::panic::PanicInfo;

@@ -161,6 +161,7 @@ impl ProcessManager {
 
     #[no_mangle]
     pub unsafe extern "C" fn yield_(&mut self) {
+        println!("yield: {}", self.current_proc_idx);
         let mut next = self.idle_proc_idx;
 
         for i in 0..PROC_MAX {
@@ -196,7 +197,7 @@ impl ProcessManager {
             "sfence.vma",
             "csrw sscratch, {}", // sscratchは重要な情報の退避用レジスタ
             in(reg) (SATP_SV32 | self.procs[next].page_table / PAGE_SIZE) as isize,
-            in(reg) (&(self.procs[next].stack[8191]) as *const u8)// ここ適切に設定しないと割り込みが機能しない！！
+            in(reg) (&(self.procs[next].stack[8191]) as *const u8).offset(1)// ここ適切に設定しないと割り込みが機能しない！！
         );
 
         let prev = self.current_proc_idx;

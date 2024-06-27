@@ -5,8 +5,14 @@ use mystd::*;
 
 #[no_mangle]
 pub unsafe fn main() {
-    // println!("hello, shell");
-    putchar('A');
+    println!("hello, shell");
+    print!("> ");
+
+    let ch = getchar();
+    println!("ch: {}", ch as u8 as char);
+    putchar(ch);
+
+    // putchar('A');
     // syscall(0, 0, 0, 0);
     loop {}
 }

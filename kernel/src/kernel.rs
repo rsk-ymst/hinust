@@ -2,7 +2,7 @@ use core::arch::asm;
 
 use common::putchar;
 
-use crate::{println, proc::PROC_MANAGER, read_csr, utils::is_aligned, write_csr, PAGE_SIZE};
+use crate::{println, proc::PROC_MANAGER, read_csr, syscall::handle_syscall, utils::is_aligned, write_csr, PAGE_SIZE};
 
 pub const PAGE_V: isize = 1 << 0; // 有効化どうか
 const PAGE_R: isize = 1 << 1;
@@ -114,7 +114,7 @@ pub unsafe extern "C" fn kernel_entry() {
 }
 
 #[derive(Debug, Clone, Copy)]
-#[repr(C, align(32))]
+// #[repr(C)]
 pub struct TrapFrame {
     pub ra: i32,
     pub gp: i32,
@@ -152,16 +152,13 @@ pub struct TrapFrame {
 pub const SCAUSE_ECALL: i32 = 8;
 
 #[no_mangle]
-pub unsafe extern "C" fn handle_trap(trap_frame: *const TrapFrame) {
+pub unsafe extern "C" fn handle_trap(trap_frame: *mut TrapFrame) {
     let scause = read_csr!("scause");
     let stval = read_csr!("stval");
     let mut user_pc = read_csr!("sepc");
 
-    println!("{:?}", *trap_frame);
-    println!("{}", scause);
-
     if scause == SCAUSE_ECALL {
-        handle_syscall(*trap_frame);
+        handle_syscall(trap_frame);
         user_pc += 4;
     } else {
         println!(
@@ -173,20 +170,4 @@ pub unsafe extern "C" fn handle_trap(trap_frame: *const TrapFrame) {
     }
 
     write_csr!("sepc", user_pc);
-}
-
-pub const SYS_PUTCHAR: i32 = 1;
-pub unsafe fn handle_syscall(trap_frame: TrapFrame) {
-    let frame = trap_frame;
-
-    match frame.a3 {
-        SYS_PUTCHAR => {
-            println!("yes1");
-            putchar((frame.a0 as u8 & 0xff) as char);
-            return;
-        }
-        _ => {
-            panic!()
-        }
-    }
 }

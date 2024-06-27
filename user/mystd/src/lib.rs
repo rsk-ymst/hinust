@@ -1,7 +1,9 @@
 #![no_std]
 
 use core::{arch::asm, fmt};
+
 pub const SYS_PUTCHAR: i32 = 1;
+pub const SYS_GETCHAR: i32 = 2;
 
 pub struct Writer {}
 
@@ -42,22 +44,28 @@ pub extern "C" fn exit() -> ! {
 #[no_mangle]
 pub unsafe fn syscall(mut sysno: i32, mut arg0: i32, mut arg1: i32, mut arg2: i32) -> i32 {
     asm!(
-        "mv a0, {0}",
-        "mv a1, {1}",
-        "mv a2, {2}",
-        "mv a3, {3}",
+        // "mv a0, {0}",
+        // "mv a1, {1}",
+        // "mv a2, {2}",
+        // "mv a3, {3}",
         "ecall",
-        in(reg) arg0, // キャストっぽく認識すると良い
-        in(reg) arg1,
-        in(reg) arg2,
-        in(reg) sysno,
+        inout("a0") arg0, // キャストっぽく認識すると良い
+        in("a1") arg1,
+        in("a2") arg2,
+        in("a3") sysno,
     );
+
+    // asm!("mv {x}, a0", x => out("a0") arg0);
 
     arg0
 }
 
 pub unsafe fn putchar(c: char) {
     syscall(SYS_PUTCHAR, c as i32, 0, 0);
+}
+
+pub unsafe fn getchar() -> char {
+    return (syscall(SYS_GETCHAR, 0, 0, 0) as u8) as char;
 }
 
 #[doc(hidden)]

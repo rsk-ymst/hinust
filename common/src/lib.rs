@@ -2,10 +2,7 @@
 
 use core::{arch::asm, fmt, panic::PanicInfo};
 
-use spin::Mutex;
-// use lazy_static::lazy_static;
-
-// use crate::sbi_call;
+pub mod sys;
 
 pub struct Writer {}
 
@@ -25,16 +22,15 @@ impl fmt::Write for Writer {
 impl Writer {
     pub fn write_byte(&mut self, str: &str) {
         for c in str.chars() {
-            putchar(c)
+            unsafe { putchar(c) }
         }
     }
 }
 
 #[no_mangle]
-pub fn putchar(ch: char) {
+pub unsafe fn putchar(ch: char) {
     sbi_call(ch as i32, 0, 0, 0, 0, 0, 0, 1 /* Console Putchar */);
 }
-
 
 /* 以下は定型文 */
 #[macro_export]
@@ -61,30 +57,45 @@ pub fn _print(args: fmt::Arguments) {
     WRITER.write_fmt(args).unwrap();
 }
 
-#[no_mangle]
-pub fn sbi_call(mut arg0: i32, mut arg1: i32, arg2: i32, arg3: i32, arg4: i32, arg5: i32, fid: i32, eid: i32) {
-    /*
-    　inoutは引数として使われ、かつ値が変わるもの
-      inは単なる引数として使われる
-      outは結果を書き込むものとして使われる
-     */
+pub struct SbiRet {
+    pub error: i32,
+    pub value: i32,
+}
 
-    unsafe {
-        asm!(
-            "ecall",
-            inout("a0") arg0, // キャストっぽく認識すると良い
-            inout("a1") arg1,
-            in("a2") arg2,
-            in("a3") arg3,
-            in("a4") arg4,
-            in("a5") arg5,
-            in("a6") fid,
-            in("a7") eid,
-            //            // out("a1") a1,
-            // : a0 = inout(reg) arg0, a1 = inout(reg) a2
-            // :
-            clobber_abi("C"), //
-        );
+#[no_mangle]
+pub unsafe fn sbi_call(
+    mut arg0: i32,
+    mut arg1: i32,
+    arg2: i32,
+    arg3: i32,
+    arg4: i32,
+    arg5: i32,
+    fid: i32,
+    eid: i32,
+) -> SbiRet {
+    /*
+        inoutは引数として使われ、かつ値が変わるもの
+        inは単なる引数として使われる
+        outは結果を書き込むものとして使われる
+    */
+
+    asm!(
+        "ecall",
+        inout("a0") arg0, 
+        inout("a1") arg1,
+        in("a2") arg2,
+        in("a3") arg3,
+        in("a4") arg4,
+        in("a5") arg5,
+        in("a6") fid,
+        in("a7") eid,
+
+        clobber_abi("C"), 
+    );
+
+    SbiRet {
+        error: arg0,
+        value: arg1,
     }
 }
 

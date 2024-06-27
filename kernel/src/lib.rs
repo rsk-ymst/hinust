@@ -56,7 +56,7 @@ pub unsafe extern "C" fn kernel_main() -> ! {
     PROC_MANAGER.create_process(ptr::null_mut(), 0, &mut MEM_MANAGER);
     PROC_MANAGER.procs[0].pid = -1;
     PROC_MANAGER.idle_proc_idx = 1;
-    PROC_MANAGER.current_proc_idx = PROC_MANAGER.idle_proc_idx;
+    PROC_MANAGER.current_proc_idx = 0;
 
     // println!("__free_ram: {:x}", fetch_address!("__free_ram"));
     // println!("_binary___bin_shell_bin_start: {:x}", _binary___bin_shell_bin_start);
@@ -76,9 +76,11 @@ pub unsafe extern "C" fn kernel_main() -> ! {
     // PROC_MANAGER.create_process(fetch_address!("proc_c_entry_v2"), &mut MEM_MANAGER);
 
     // proc_a_entry_v2();
+    // println!("kernel_main: {:?}", PROC_MANAGER);
 
     PROC_MANAGER.yield_();
 
+    panic!();
     loop {}
 }
 

@@ -122,9 +122,9 @@ impl ProcessManager {
                 paddr += PAGE_SIZE;
             }
 
-            if image.is_null() {
-                return;
-            }
+            // if image.is_null() {
+            //     return;
+            // }
 
             // println!("image size {:x}", image_size);
             for offset in (0..image_size).step_by(PAGE_SIZE) {
@@ -153,6 +153,8 @@ impl ProcessManager {
             proc.sp = sp as usize;
             proc.page_table = page_table;
 
+            println!("create process: {}", i);
+
             return;
         }
 
@@ -161,24 +163,28 @@ impl ProcessManager {
 
     #[no_mangle]
     pub unsafe extern "C" fn yield_(&mut self) {
-        println!("yield: {}", self.current_proc_idx);
-        let mut next = self.idle_proc_idx;
+        // println!("yield: {}", self.current_proc_idx);
+        let mut next_proc_idx = self.idle_proc_idx;
 
         for i in 0..PROC_MAX {
             let proc = &self.procs[i];
 
+            // 現在のプロセスは飛ばす
             if i == self.current_proc_idx {
                 continue;
             }
 
+            // ユーザプロセスがあればそちらに切り替える
             if proc.state == ProcState::RUNNABLE && proc.pid > 0 {
-                next = i;
+                next_proc_idx = i;
                 break;
             }
         }
 
-        if next == self.current_proc_idx {
-            println!("ret");
+
+        // ほかにユーザプロセスがない場合，この条件になる
+        if next_proc_idx == self.current_proc_idx {
+            // println!("ret");
             return;
         }
 
@@ -196,13 +202,13 @@ impl ProcessManager {
             "csrw satp, {}",
             "sfence.vma",
             "csrw sscratch, {}", // sscratchは重要な情報の退避用レジスタ
-            in(reg) (SATP_SV32 | self.procs[next].page_table / PAGE_SIZE) as isize,
-            in(reg) (&(self.procs[next].stack[8191]) as *const u8).offset(1)// ここ適切に設定しないと割り込みが機能しない！！
+            in(reg) (SATP_SV32 | self.procs[next_proc_idx].page_table / PAGE_SIZE) as isize,
+            in(reg) (&(self.procs[next_proc_idx].stack[8191]) as *const u8).offset(1)// ここ適切に設定しないと割り込みが機能しない！！
         );
 
         let prev = self.current_proc_idx;
-        self.current_proc_idx = next;
+        self.current_proc_idx = next_proc_idx;
 
-        switch_context(&self.procs[prev].sp, &self.procs[next].sp);
+        switch_context(&self.procs[prev].sp, &self.procs[next_proc_idx].sp);
     }
 }

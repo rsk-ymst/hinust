@@ -3,6 +3,7 @@
 use core::{panic::PanicInfo};
 use mystd::*;
 use common::strcmp2;
+use mystd::sys::*;
 
 #[no_mangle]
 pub unsafe fn main() {

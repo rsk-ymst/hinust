@@ -1,9 +1,9 @@
 #![no_std]
 
-use core::{panic::PanicInfo};
-use mystd::*;
 use common::strcmp2;
+use core::panic::PanicInfo;
 use mystd::sys::*;
+use mystd::*;
 // use mystd::common::strcmp2;
 
 #[no_mangle]
@@ -20,32 +20,32 @@ pub unsafe fn main() {
         loop {
             let ch = getchar();
             putchar(ch);
-            
+
             /* Enterを押されたとき */
             if ch == '\r' {
                 println!();
-                break 1;
+                break;
             }
 
             chars[idx] = ch;
             idx += 1;
-        };
+        }
 
+        // let target = ['h', 'e', 'l', 'l', 'o', '\0'].as_ptr();
 
-            let target = ['h', 'e', 'l', 'l', 'o', '\0'].as_ptr();
+        let target = ['e', 'x', 'i', 't', '\0'].as_ptr();
+        if strcmp2(chars.as_ptr(), target as *mut char) {
+            println!("exit!");
+            exit_usr();
+        }
 
-           if strcmp2(chars.as_ptr(), target as *mut char) {
-                println!("yes, hello!");
-           }
-        
+        println!("unknown command: ");
     }
 
     // putchar('A');
     syscall(0, 0, 0, 0);
     loop {}
 }
-
-
 
 #[panic_handler]
 #[no_mangle]

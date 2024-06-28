@@ -1,6 +1,6 @@
-use common::{println, putchar, sbi_call, sys::SYS_GETCHAR, sys::SYS_PUTCHAR};
+use common::{println, putchar, sbi_call, sys::{SYS_EXIT, SYS_GETCHAR, SYS_PUTCHAR}};
 
-use crate::{kernel::TrapFrame, proc::PROC_MANAGER};
+use crate::{kernel::TrapFrame, proc::{ProcState, PROC_MANAGER}};
 
 
 pub unsafe fn getchar() -> i32 {
@@ -28,6 +28,15 @@ pub unsafe fn handle_syscall(trap_frame: *mut TrapFrame) {
                 PROC_MANAGER.yield_();
             }
         }
+        SYS_EXIT => {
+            println!("exit syscall: {}", PROC_MANAGER.current_proc_idx);
+
+            PROC_MANAGER.procs[PROC_MANAGER.current_proc_idx].state = ProcState::UNUSED;
+            PROC_MANAGER.yield_();
+            
+            panic!("exit successfully");
+        }
+
         _ => {
             panic!()
         }

@@ -1,10 +1,41 @@
 #![no_std]
 
-use core::{arch::asm, fmt, panic::PanicInfo};
+use core::{arch::asm, fmt};
 
 pub mod sys;
 
 pub struct Writer {}
+
+pub unsafe fn strcmp2(ptr1: *const char, ptr2: *const char) -> bool {
+    let mut i: usize = 0;
+    // let target = ptr2.as_bytes();
+
+    loop {
+        let c1 = unsafe { *ptr1.offset(i as isize) };
+        let c2 = unsafe { *ptr2.offset(i as isize) };
+
+        // println!("c1: {}, c2: {}", c1, c2);
+        if c1 == '\0' {
+            break;
+        }
+
+        if c1 != c2 {
+            return false;
+        }
+
+        i += 1;
+    }
+
+    true
+}
+
+// 圧縮された文字列を展開す
+// 数字だけの表
+    // ポインタが入った処理，ツリー
+    // マルチスレッドの環境でやりたいこと
+        // 具体例で考える．
+        // Cの中でRustのlock(既存のやり方)
+        // Cの中でスレッドを作って変なことが起きるか．
 
 // lazy_static! {
 //     pub static ref WRITER: Mutex<Writer> = Mutex::new(Writer {});
@@ -99,10 +130,3 @@ pub unsafe fn sbi_call(
     }
 }
 
-// #[panic_handler]
-// #[no_mangle]
-// pub fn dummy_panic(info: &PanicInfo) -> ! {
-//     // 何もせず、無限ループする
-//     // println!("{}", info);
-//     loop{}
-// }

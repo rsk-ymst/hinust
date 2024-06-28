@@ -8,7 +8,6 @@ pub unsafe fn getchar() -> i32 {
     return ret.error as i32;
 }
 
-
 pub unsafe fn handle_syscall(trap_frame: *mut TrapFrame) {
     let frame = trap_frame;
 
@@ -18,11 +17,10 @@ pub unsafe fn handle_syscall(trap_frame: *mut TrapFrame) {
             return;
         }
         SYS_GETCHAR => {
-            println!("getchar");
             loop {
                 let ch = getchar();
+
                 if ch >= 0 {
-                    println!("ch: {}", ch);
                     (*frame).a0 = ch;
                     return;
                 }

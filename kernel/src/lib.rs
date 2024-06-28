@@ -80,7 +80,7 @@ pub unsafe extern "C" fn kernel_main() -> ! {
 
     PROC_MANAGER.yield_();
 
-    panic!();
+    // panic!();
     loop {}
 }
 

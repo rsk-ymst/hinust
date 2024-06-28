@@ -1,21 +1,15 @@
 use core::arch::asm;
-use crate::{SYS_PUTCHAR, SYS_GETCHAR};
+use common::sys::{SYS_GETCHAR, SYS_PUTCHAR};
 
 #[no_mangle]
 pub unsafe fn syscall(mut sysno: i32, mut arg0: i32, mut arg1: i32, mut arg2: i32) -> i32 {
     asm!(
-        // "mv a0, {0}",
-        // "mv a1, {1}",
-        // "mv a2, {2}",
-        // "mv a3, {3}",
         "ecall",
         inout("a0") arg0, // キャストっぽく認識すると良い
         in("a1") arg1,
         in("a2") arg2,
         in("a3") sysno,
     );
-
-    // asm!("mv {x}, a0", x => out("a0") arg0);
 
     arg0
 }

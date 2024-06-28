@@ -4,6 +4,7 @@ use core::{panic::PanicInfo};
 use mystd::*;
 use common::strcmp2;
 use mystd::sys::*;
+// use mystd::common::strcmp2;
 
 #[no_mangle]
 pub unsafe fn main() {

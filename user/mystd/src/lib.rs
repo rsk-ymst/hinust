@@ -3,9 +3,6 @@
 use core::{arch::asm, fmt};
 use crate::sys::putchar;
 
-pub const SYS_PUTCHAR: i32 = 1;
-pub const SYS_GETCHAR: i32 = 2;
-
 pub mod sys;
 pub struct Writer {}
 

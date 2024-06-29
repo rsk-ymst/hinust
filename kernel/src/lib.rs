@@ -9,6 +9,7 @@ mod mem;
 mod proc;
 mod utils;
 mod syscall;
+mod virtio;
 // mod use
 
 const PAGE_SIZE: usize = 4096;

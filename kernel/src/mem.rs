@@ -30,7 +30,7 @@ impl RAM {
 #[derive(Debug, Clone)]
 pub struct PageManager {
     pub ram: RAM,
-    pub next_addr: Cell<paddr_t>,
+    pub next_addr: paddr_t,
 }
 
 // static mut MEM_MANAGER: PageManager = PageManager {
@@ -42,12 +42,12 @@ pub struct PageManager {
 // };
 
 impl PageManager {
-    pub unsafe fn alloc_pages(&self, n: usize) -> paddr_t {
-        let paddr: paddr_t = *self.next_addr.as_ptr();
-        self.next_addr.set(paddr + n * PAGE_SIZE);
+    pub unsafe fn alloc_pages(&mut self, n: usize) -> paddr_t {
+        let paddr: paddr_t = self.next_addr;
+        self.next_addr = paddr + n * PAGE_SIZE;
 
         if self.ram.is_valid_address(paddr) {
-            println!("out of memory...");
+            panic!("out of memory...");
         }
 
         self.alloc_zero(paddr as *mut u8, (n * PAGE_SIZE) as usize);

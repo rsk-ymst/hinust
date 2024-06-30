@@ -7,8 +7,8 @@ mod kernel;
 mod macros;
 mod mem;
 mod proc;
-mod utils;
 mod syscall;
+mod utils;
 mod virtio;
 // mod use
 
@@ -19,6 +19,7 @@ use lazy_static::lazy_static;
 
 use kernel::kernel_entry;
 use proc::{ProcState, Process, ProcessManager, PROC_MANAGER};
+use virtio::{read_write_disk, virtio_blk_init, SECTOR_SIZE};
 
 extern "C" {
     static mut __stack_top: *mut u8;
@@ -40,46 +41,59 @@ struct hoge {
     b: u8,
 }
 
+pub static mut MEM_MANAGER: mem::PageManager = mem::PageManager {
+    ram: mem::RAM {
+        entry_point: 0,
+        end_point: 0,
+    },
+    next_addr: 0,
+};
+
 #[no_mangle]
 pub unsafe extern "C" fn kernel_main() -> ! {
     write_csr!("stvec", kernel_entry);
 
-    let mut MEM_MANAGER: PageManager = PageManager {
+    MEM_MANAGER = PageManager {
         ram: RAM {
             entry_point: fetch_address!("__free_ram"),
             end_point: fetch_address!("__free_ram_end"),
         },
-        next_addr: Cell::new(fetch_address!("__free_ram")),
+        next_addr: fetch_address!("__free_ram"),
     };
 
-    // println!("hello, world!");
+    virtio_blk_init();
+    let mut buf = [0u8; SECTOR_SIZE];
+    read_write_disk(&mut buf, 0, false);
+    println!("first sector: {:?}", buf);
 
-    PROC_MANAGER.create_process(ptr::null_mut(), 0, &mut MEM_MANAGER);
-    PROC_MANAGER.procs[0].pid = -1;
-    PROC_MANAGER.idle_proc_idx = 1;
-    PROC_MANAGER.current_proc_idx = 0;
-
-    // println!("__free_ram: {:x}", fetch_address!("__free_ram"));
-    // println!("_binary___bin_shell_bin_start: {:x}", _binary___bin_shell_bin_start);
-    // println!("_binary___bin_shell_bin_start: {:x}", fetch_address!("_binary___bin_shell_bin_start"));
-    // println!("_binary___bin_shell_bin_size: {:x}", fetch_address!("_binary___bin_shell_bin_size"));
+    // // println!("hello, world!");
 
     // PROC_MANAGER.create_process(ptr::null_mut(), 0, &mut MEM_MANAGER);
-    // println!("create_process: {:?}", fetch_address!("_binary___bin_shell_bin_start"));
-    PROC_MANAGER.create_process(
-        fetch_address!("_binary___bin_shell_bin_start") as *mut c_void,
-        fetch_address!("_binary___bin_shell_bin_size") as i32,
-        &mut MEM_MANAGER,
-    );
+    // PROC_MANAGER.procs[0].pid = -1;
+    // PROC_MANAGER.idle_proc_idx = 1;
+    // PROC_MANAGER.current_proc_idx = 0;
 
-    // PROC_MANAGER.create_process(fetch_address!("proc_a_entry_v2"), &mut MEM_MANAGER);
-    // PROC_MANAGER.create_process(fetch_address!("proc_b_entry_v2"), &mut MEM_MANAGER);
-    // PROC_MANAGER.create_process(fetch_address!("proc_c_entry_v2"), &mut MEM_MANAGER);
+    // // println!("__free_ram: {:x}", fetch_address!("__free_ram"));
+    // // println!("_binary___bin_shell_bin_start: {:x}", _binary___bin_shell_bin_start);
+    // // println!("_binary___bin_shell_bin_start: {:x}", fetch_address!("_binary___bin_shell_bin_start"));
+    // // println!("_binary___bin_shell_bin_size: {:x}", fetch_address!("_binary___bin_shell_bin_size"));
 
-    // proc_a_entry_v2();
-    // println!("kernel_main: {:?}", PROC_MANAGER);
+    // // PROC_MANAGER.create_process(ptr::null_mut(), 0, &mut MEM_MANAGER);
+    // // println!("create_process: {:?}", fetch_address!("_binary___bin_shell_bin_start"));
+    // PROC_MANAGER.create_process(
+    //     fetch_address!("_binary___bin_shell_bin_start") as *mut c_void,
+    //     fetch_address!("_binary___bin_shell_bin_size") as i32,
+    //     &mut MEM_MANAGER,
+    // );
 
-    PROC_MANAGER.yield_();
+    // // PROC_MANAGER.create_process(fetch_address!("proc_a_entry_v2"), &mut MEM_MANAGER);
+    // // PROC_MANAGER.create_process(fetch_address!("proc_b_entry_v2"), &mut MEM_MANAGER);
+    // // PROC_MANAGER.create_process(fetch_address!("proc_c_entry_v2"), &mut MEM_MANAGER);
+
+    // // proc_a_entry_v2();
+    // // println!("kernel_main: {:?}", PROC_MANAGER);
+
+    // PROC_MANAGER.yield_();
 
     // panic!();
     loop {}

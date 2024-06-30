@@ -5,8 +5,9 @@ use core::{arch::asm, borrow::BorrowMut};
 
 use crate::mem::SSTATUS_SPIE;
 use crate::mem::{paddr_t, PageManager, PAGE_R, PAGE_SIZE, PAGE_U, PAGE_W, PAGE_X, SATP_SV32};
-use crate::println;
+use crate::virtio::VIRTIO_BLK_PADDR;
 use crate::{fetch_address, switch_context};
+use crate::{println, MEM_MANAGER};
 
 type vaddr_t = i32;
 
@@ -122,6 +123,13 @@ impl ProcessManager {
                 paddr += PAGE_SIZE;
             }
 
+            MEM_MANAGER.map_page(
+                page_table,
+                VIRTIO_BLK_PADDR,
+                VIRTIO_BLK_PADDR,
+                PAGE_R | PAGE_W,
+            );
+
             // if image.is_null() {
             //     return;
             // }
@@ -180,7 +188,6 @@ impl ProcessManager {
                 break;
             }
         }
-
 
         // ほかにユーザプロセスがない場合，この条件になる
         if next_proc_idx == self.current_proc_idx {

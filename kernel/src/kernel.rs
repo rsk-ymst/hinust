@@ -2,7 +2,10 @@ use core::arch::asm;
 
 use common::putchar;
 
-use crate::{println, proc::PROC_MANAGER, read_csr, syscall::handle_syscall, utils::is_aligned, write_csr, PAGE_SIZE};
+use crate::{
+    println, proc::PROC_MANAGER, read_csr, syscall::handle_syscall, utils::is_aligned, write_csr,
+    PAGE_SIZE,
+};
 
 pub const PAGE_V: isize = 1 << 0; // 有効化どうか
 const PAGE_R: isize = 1 << 1;
@@ -70,13 +73,11 @@ pub unsafe extern "C" fn kernel_entry() {
         // 例外発生時のspを保存
         "csrr a0, sscratch",
         "sw a0, 4 * 30(sp)",
-
         "addi a0, sp, 4 * 31",
         "csrw sscratch, a0",
         // スタックトップの値を引数にして，call
-        "mv a0, sp", 
+        "mv a0, sp",
         "call handle_trap",
-
         "lw ra,  4 * 0(sp)",
         "lw gp,  4 * 1(sp)",
         "lw tp,  4 * 2(sp)",

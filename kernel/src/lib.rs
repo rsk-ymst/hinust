@@ -61,17 +61,17 @@ pub unsafe extern "C" fn kernel_main() -> ! {
         next_addr: fetch_address!("__free_ram"),
     };
 
-    virtio_blk_init();
-    let mut buf = [0u8; SECTOR_SIZE];
-    read_write_disk(&mut buf, 0, false);
-    println!("first sector: {:?}", buf);
+    // virtio_blk_init();
+    // let mut buf = [0u8; SECTOR_SIZE];
+    // read_write_disk(&mut buf, 0, false);
+    // println!("first sector: {:?}", buf);
 
     // // println!("hello, world!");
 
-    // PROC_MANAGER.create_process(ptr::null_mut(), 0, &mut MEM_MANAGER);
-    // PROC_MANAGER.procs[0].pid = -1;
-    // PROC_MANAGER.idle_proc_idx = 1;
-    // PROC_MANAGER.current_proc_idx = 0;
+    PROC_MANAGER.create_process(ptr::null_mut(), 0, &mut MEM_MANAGER);
+    PROC_MANAGER.procs[0].pid = -1;
+    PROC_MANAGER.idle_proc_idx = 1;
+    PROC_MANAGER.current_proc_idx = 0;
 
     // // println!("__free_ram: {:x}", fetch_address!("__free_ram"));
     // // println!("_binary___bin_shell_bin_start: {:x}", _binary___bin_shell_bin_start);
@@ -80,20 +80,20 @@ pub unsafe extern "C" fn kernel_main() -> ! {
 
     // // PROC_MANAGER.create_process(ptr::null_mut(), 0, &mut MEM_MANAGER);
     // // println!("create_process: {:?}", fetch_address!("_binary___bin_shell_bin_start"));
-    // PROC_MANAGER.create_process(
-    //     fetch_address!("_binary___bin_shell_bin_start") as *mut c_void,
-    //     fetch_address!("_binary___bin_shell_bin_size") as i32,
-    //     &mut MEM_MANAGER,
-    // );
+    PROC_MANAGER.create_process(
+        fetch_address!("_binary___bin_shell_bin_start") as *mut c_void,
+        fetch_address!("_binary___bin_shell_bin_size") as i32,
+        &mut MEM_MANAGER,
+    );
 
     // // PROC_MANAGER.create_process(fetch_address!("proc_a_entry_v2"), &mut MEM_MANAGER);
     // // PROC_MANAGER.create_process(fetch_address!("proc_b_entry_v2"), &mut MEM_MANAGER);
     // // PROC_MANAGER.create_process(fetch_address!("proc_c_entry_v2"), &mut MEM_MANAGER);
 
     // // proc_a_entry_v2();
-    // // println!("kernel_main: {:?}", PROC_MANAGER);
+    // println!("kernel_main: {:?}", PROC_MANAGER);
 
-    // PROC_MANAGER.yield_();
+    PROC_MANAGER.yield_();
 
     // panic!();
     loop {}

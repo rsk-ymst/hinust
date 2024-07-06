@@ -71,6 +71,7 @@ struct VirtqUsed {
     ring: [VirtUsedElem; VIRTQ_ENTRY_NUM],
 }
 
+// ページの先頭に割り当てられる
 #[repr(align(4096))]
 struct VirtioVirtq {
     descs: [VirtqDesc; VIRTQ_ENTRY_NUM],
